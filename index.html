@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>[Paperlike]</title>
+	<link rel="stylesheet" type="text/css" href="style.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<meta name="MobileOptimized" content="640">
+	<script type="text/javascript" src="chance.min.js"></script>
+	<script type="text/javascript" src="paperlike.js"></script>
+</head>
+<body>
+	<div id="room"></div>
+	<div style="display: none;" id="inv">
+		<table id="cells">
+			<tr>
+				<td>[swrd]</td>
+				<td>[shld]</td>
+				<td>cprmr</td>
+				<td>ptn</td>
+				<td>rng</td>
+			</tr>
+			<tr>
+				<td>.</td>
+				<td>.</td>
+				<td>.</td>
+				<td>.</td>
+				<td>.</td>
+			</tr>
+			<tr>
+				<td>.</td>
+				<td>.</td>
+				<td>.</td>
+				<td>.</td>
+				<td>.</td>
+			</tr>
+			<tr>
+				<td>.</td>
+				<td>.</td>
+				<td>.</td>
+				<td>.</td>
+				<td>.</td>
+			</tr>
+		</table>
+		<div id="inspect">
+			<h3>Broken Shield</h3>
+			<p>Description of this item.</p>
+			<img src="exit.svg" onmousedown="Stage.setscene('game');">
+		</div>
+	</div>
+	<div id="bevel"></div>
+	<div id="buttons">
+		<img src="up.svg" onmousedown="keyinput('up');">
+		<img src="down.svg" onmousedown="keyinput('down');">
+		<img src="left.svg" onmousedown="keyinput('left');">
+		<img src="right.svg" onmousedown="keyinput('right');">
+	</div>
+	<div id="buttons2">
+		<img src="stash.svg" onmousedown="Stage.setscene('inv');">
+	</div>
+	<p id="msg" style="position: absolute; bottom: -32px; left: 32px;">ughe</p>
+	<script type="text/javascript">begin();</script>
+</body>
+</html>
