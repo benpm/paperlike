@@ -8,43 +8,54 @@
 	<script type="text/javascript" src="chance.min.js"></script>
 	<script type="text/javascript" src="paperlike.js"></script>
 </head>
-<body>
+<body>p
+	<div id="stats">
+		<div id="hp">HP: 10/10</div>
+		<div id="st">ST: 5/5</div>
+	</div>
 	<div id="room"></div>
 	<div style="display: none;" id="inv">
 		<table id="cells">
 			<tr>
-				<td>[swrd]</td>
-				<td>[shld]</td>
-				<td>cprmr</td>
-				<td>ptn</td>
-				<td>rng</td>
+				<td index="0" onmousedown="invent(this);"></td>
+				<td index="1" onmousedown="invent(this);"></td>
+				<td index="2" onmousedown="invent(this);"></td>
+				<td index="3" onmousedown="invent(this);"></td>
+				<td index="4" onmousedown="invent(this);"></td>
 			</tr>
 			<tr>
-				<td>.</td>
-				<td>.</td>
-				<td>.</td>
-				<td>.</td>
-				<td>.</td>
+				<td index="5" onmousedown="invent(this);">.</td>
+				<td index="6" onmousedown="invent(this);">.</td>
+				<td index="7" onmousedown="invent(this);">.</td>
+				<td index="8" onmousedown="invent(this);">.</td>
+				<td index="9" onmousedown="invent(this);">.</td>
 			</tr>
 			<tr>
-				<td>.</td>
-				<td>.</td>
-				<td>.</td>
-				<td>.</td>
-				<td>.</td>
+				<td index="10" onmousedown="invent(this);">.</td>
+				<td index="11" onmousedown="invent(this);">.</td>
+				<td index="12" onmousedown="invent(this);">.</td>
+				<td index="13" onmousedown="invent(this);">.</td>
+				<td index="14" onmousedown="invent(this);">.</td>
 			</tr>
 			<tr>
-				<td>.</td>
-				<td>.</td>
-				<td>.</td>
-				<td>.</td>
-				<td>.</td>
+				<td index="15" onmousedown="invent(this);">/</td>
+				<td index="16" onmousedown="invent(this);">/</td>
+				<td index="17" onmousedown="invent(this);">/</td>
+				<td index="18" onmousedown="invent(this);">/</td>
+				<td index="19" onmousedown="invent(this);">/</td>
 			</tr>
 		</table>
 		<div id="inspect">
-			<h3>Broken Shield</h3>
-			<p>Description of this item.</p>
-			<img src="exit.svg" onmousedown="Stage.setscene('game');">
+			<div id="A">
+				<img src="check.svg" onmousedown="alert('n/i');">
+			</div>
+			<div id="B">
+				<h3 id="iname"></h3>
+				<p id="idesc"></p>
+			</div>
+			<div id="C">
+				<img src="exit.svg" onmousedown="Stage.setscene('game');">
+			</div>
 		</div>
 	</div>
 	<div id="bevel"></div>
@@ -55,7 +66,7 @@
 		<img src="right.svg" onmousedown="keyinput('right');">
 	</div>
 	<div id="buttons2">
-		<img src="stash.svg" onmousedown="Stage.setscene('inv');">
+		<img id="invbutton" src="stash.svg" onmousedown="Stage.setscene('inv');">
 	</div>
 	<p id="msg" style="position: absolute; bottom: -32px; left: 32px;">ughe</p>
 	<script type="text/javascript">begin();</script>

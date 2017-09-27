@@ -22,27 +22,40 @@ body {
 	cursor: default;
 }
 
-#room {
+#stats {
 	position: absolute;
-	text-align: justify;
-	font-size: 30px;
-	left: 21%;
-	top: 32px;
-	border: solid 3px gray;
-	border-radius: 6px;
-	padding: 6px;
+	width: 100%;
+	height: 16px;
+	top: 6px;
+	left: 32px;
+}
+
+#stats div {
+	padding: 0;
+	margin: 0 10% 0 0;
+	text-align: center;
+	color: white;
+	display: inline;
+}
+
+#room, #inv {
+	position: absolute;
+	text-align: center;
+	font-size: 25px;
+	left: 0;
+	top: 16px;
+	/*outline: solid 3px gray;*/
+	/*border-radius: 6px;*/
+	margin: 32px 0 0 0;
+	width: 100%;
+	height: 50%;
 }
 
 #inv {
-	position: absolute;
-	left: 25%;
-	top: 32px;
-	border: solid 3px gray;
-	border-radius: 6px;
-	padding: 0;
-	margin: 0;
-	width: 50%;
-	height: 50%;
+	width: 80%;
+	text-align: left;
+	font-size: unset;
+	left: 10%;
 }
 
 #inv #cells {
@@ -56,6 +69,13 @@ body {
 #inv #cells td {
 	outline: solid 1px lightgray;
 	text-align: center;
+	height: 25%;
+}
+
+#inv #cells td#select {
+	outline: dotted 1px white;
+	background: black;
+	color: white;
 }
 
 #inv #inspect {
@@ -63,27 +83,51 @@ body {
 	padding: 0;
 	width: 100%;
 	height: 20%;
-	outline: solid 3px gray;
+	outline: solid 2px gray;
 	line-height: 6px;
+	display: flex;
 }
 
-#inv #inspect h1 {
+#inv #inspect div {
+	height: 100%;
 	margin: 0;
 	padding: 0;
 }
 
-#inv #inspect img {
-	position: relative;
+#inv #inspect #B {
+	width: 70%;
+}
+
+#inv #inspect #A, #C {
+	width: 15%;
+}
+
+#inv #inspect h3 {
+	margin: 0;
+	padding: 1em 0 0 0;
+}
+
+#inv #inspect p {
+	font-size: 13px;
+}
+
+#inv #inspect #C img {
+	height: 100%;
 	float: right;
-	top: -50%;
+}
+
+#inv #inspect #A img {
+	height: 100%;
+	float: left;
+	opacity: 0.2;
 }
 
 #bevel {
 	position: absolute;
-	top: 0;
+	top: 16px;
 	left: 0;
 	border: solid 16px black;
-	border-radius: 32px;
+	border-radius: 24px;
 	z-index: -1;
 	background: white;
 }
@@ -93,7 +137,7 @@ body {
 	width: 200px;
 	height: 200px;
 	top: 70%;
-	left: 70%;
+	left: 60%;
 }
 
 #buttons img {
@@ -110,3 +154,7 @@ body {
 	left: 10%;
 }
 
+
+.disabled {
+	opacity: 0.2;
+}

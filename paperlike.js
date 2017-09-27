@@ -1,7 +1,7 @@
 ////Globals
 
 //DOM Elements
-var $room, $inv;
+var $room, $inv, $bInv, $islots, $iname, $idesc;
 //Misc. globals
 var width, height, xcol, 
 	xrow, player, controls, room, msg;
@@ -17,6 +17,35 @@ var itypes = {};
 
 //// Game Functions
 
+//Simplify strings
+function strimplify(str) {
+	return str.replace(/[aeiou]/g, "").replace(/[^A-z \d.,:]/g, "");
+}
+//Redraw inventory boxes
+function invdraw() {
+	var index = 0;
+	for (index = 0; index < player.stash.max; index++) {
+		$islots[index].innerText = ".";
+	}
+	index = 0;
+	for (var item of player.stash.items) {
+		$islots[index].innerText = strimplify(item.type.name);
+		index ++;
+	}
+}
+//Click on inventory DOM
+function invent(dom) {
+	//Reset other selected
+	for (var slot of $islots) {
+		slot.id = "";
+	}
+	//Select
+	dom.id = dom.id ? "" : "select";
+	//Set inspector
+	var item = player.stash.items[parseInt(dom.getAttribute("index"))];
+	$iname.innerHTML = item ? item.type.name : "";
+	$idesc.innerHTML = item ? strimplify(JSON.stringify(Object.keys(item))) : "";
+}
 //Display alert on error
 function handleError(error) {
 	if (error.message)
@@ -81,28 +110,36 @@ function begin() {
 	new Proptype("chest", "$", {stash: "max=10"});
 
 	//Item definitions
-	new Itemtype("sword", "sword", {dmg: 1.25})
+	new Itemtype("knife", {cat: "weapon", dmg: 1, spd: 5, dur: 1});
+	new Itemtype("sword", {cat: "weapon", dmg: 2, spd: 4, dur: 1});
+	new Itemtype("longsword", {cat: "weapon", dmg: 3, spd: 3, dur: 1});
+	new Itemtype("battleaxe", {cat: "weapon", dmg: 4, spd: 2, dur: 1});
+	new Itemtype("apple", {cat: "consumable", hp: 2});
 
 	//DOM Association
 	msg = document.getElementById("msg");
 	input = document.getElementById("input");
 	$room = document.getElementById("room");
 	$inv = document.getElementById("inv");
+	$bInv = document.getElementById("invbutton");
+	$iname = document.getElementById("iname");
+	$idesc = document.getElementById("idesc");
+	$islots = document.getElementsByTagName("td");
 
 	//Style setup
 	var bevel = document.getElementById("bevel");
 	bevel.style.width = (window.innerWidth - 32) + "px";
-	bevel.style.height = (window.innerHeight - 32) + "px";
+	bevel.style.height = (window.innerHeight - 48) + "px";
 
 	//Stage setup
-	width = 21;
+	width = 31;
 	height = 11;
 	xcol = width - 1;
 	xrow = height - 1;
 
 	//Player setup
 	player = new Actor("player", Math.floor(width/2), Math.floor(height/2));
-	player.stash.add(Item("sword"));
+	player.stash.add(new Item("sword"));
 
 	//Controls
 	document.addEventListener("keydown", keyinput);
@@ -128,6 +165,7 @@ var Stage = {
 				break;
 			case "inv":
 				$inv.style.display = "none";
+				$bInv.className = "";
 				break;
 		}
 		this.scene = scene;
@@ -136,7 +174,9 @@ var Stage = {
 				$room.style.display = "";
 				break;
 			case "inv":
+				invdraw();
 				$inv.style.display = "";
+				$bInv.className = "disabled";
 				break;
 			case "char": break;
 		}
@@ -170,7 +210,8 @@ function Actor(actype, x, y, props) {
 	this.y = y;
 	if (this.type.stash)
 		this.stash = new Stash(this.type.stash);
-	//TODO: Merge props
+	//Merge
+	Object.assign(this, this.type, props);
 	this.move = function(dx, dy) {
 		if (room.tile(this.x + dx, this.y + dy).solid)
 			return;
@@ -199,7 +240,8 @@ function Prop(ptype, x, y, props) {
 	this.x = x;
 	this.y = y;
 	this.stash = Stash(props.stash || "");
-	//@todo Merge props
+	//Merge
+	Object.assign(this, this.type, props);
 }
 //Collection of items
 function Stash(specify) {
@@ -236,19 +278,21 @@ function Stash(specify) {
 	}
 }
 //Type of item
-function Itemtype(name, img, props) {
+function Itemtype(name, props) {
 	this.name = name;
-	this.img = img;
-	this.category = props.category || "misc";
-	this.dmg = props.dmg || 0;
-	this.durability= props.durability || 0;
-	this.armor = props.armor || 0;
+	this.category = props.cat || "misc";
+	this.damage = props.dmg || 0;
+	this.speed = props.spd || 0;
+	this.durability= props.dur || 0;
+	this.armor = props.armr || 0;
+	this.heal = props.hp || 0;
 	itypes[name] = this;
 }
 //Individual item
 function Item(itype, props) {
-	this.itype = itypes[itype];
-	//@todo: merge props
+	this.type = itypes[itype];
+	//Merge
+	Object.assign(this, this.type, props);
 }
 //Individual room
 function Room() {
