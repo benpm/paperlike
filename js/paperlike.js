@@ -1,7 +1,12 @@
+/* global sprintf */
+
+
 ////Globals
 
+//Sprintf.js
+var s = sprintf;
 //DOM Elements
-var $room, $inv, $bInv, $islots, $iname, $idesc, $acts;
+var $room, $inv, $bInv, $islots, $iname, $idesc, $iequip, $acts;
 //Misc. globals
 var width, height, xcol, 
 	xrow, player, controls, room, actions;
@@ -28,8 +33,13 @@ function invdraw() {
 		$islots[index].innerText = ".";
 	}
 	index = 0;
+
 	for (var item of player.stash.items) {
 		$islots[index].innerText = strimplify(item.name);
+		if (item.equipped)
+			$islots[index].className = "equip";
+		else
+			$islots[index].className = "";		
 		index ++;
 	}
 }
@@ -61,18 +71,23 @@ function getActions() {
 	var i = 0, extras = "";
 	$acts.innerHTML = "";
 	for (var action of actions) {
+		//Assign extra info string
 		extras = "";
 		if (action.stash)
 			extras += " [" + action.stash.items.length + "] items";
 		if (action.hp)
 			extras += " (" + action.hp + " HP)";
-		$acts.innerHTML += "<p> • " +
-			(action.constructor.name == "Actor" ? "attack " :
-			action.constructor.name == "Prop" ? "loot " : "interact ")
-			+ action.name + extras + "</p>";
+		
+		//Write in DOM
+		$acts.innerHTML += s("<p> • %s %s %s </p>",
+			action.constructor.name == "Actor" ? "attack " :
+			action.constructor.name == "Prop" ? "loot " : "interact ",
+			action.name, extras);
+		
+		//Assign interact function
 		$acts.children[i].onmousedown = function () {
 			if (action.interact) {
-				action.interact();
+				action.interact(player);
 				turn();
 			} else
 				console.warn("Missing interact for: ", action);	
@@ -97,6 +112,27 @@ function invent(dom) {
 	var item = player.stash.items[parseInt(dom.getAttribute("index"))];
 	$iname.innerHTML = item ? item.name : "";
 	$idesc.innerHTML = item ? strimplify(JSON.stringify(item)) : "";
+	$iequip.src = "img/unchecked.svg";
+	$iequip.style.opacity = 0.2;
+	if (item && item.equippable) {
+		$iequip.src = item.equipped ? "img/checked.svg" : "img/unchecked.svg";
+		$iequip.style.opacity = 1;
+	}
+}
+//Equip button is pressed
+function invEquip() {
+	//Select and equip if equippable
+	var item = invSelected();
+	if (!item.equippable) return;
+	else player.stash.equip(item);
+
+	//Redraw / reinspect item
+	invdraw();
+	invent(document.getElementById("select"));
+}
+//Returns selected item
+function invSelected() {
+	return player.stash.items[parseInt(document.getElementById("select").getAttribute("index"))];
 }
 //Display alert on error
 function handleError(error) {
@@ -169,10 +205,10 @@ function begin() {
 	new Proptype("carcass", "&", { stash: "max=10", solid: false });
 
 	//Item definitions
-	new Itemtype("knife", {cat: "weapon", dmg: 1, spd: 5, dur: 1});
-	new Itemtype("sword", {cat: "weapon", dmg: 2, spd: 4, dur: 1});
-	new Itemtype("longsword", {cat: "weapon", dmg: 3, spd: 3, dur: 1});
-	new Itemtype("battleaxe", {cat: "weapon", dmg: 4, spd: 2, dur: 1});
+	new Itemtype("knife", {cat: "weapon", slot:"hand", dmg: 1, spd: 5, dur: 1});
+	new Itemtype("sword", {cat: "weapon", slot:"hand", dmg: 2, spd: 4, dur: 1});
+	new Itemtype("longsword", {cat: "weapon", slot:"hand", dmg: 3, spd: 3, dur: 1});
+	new Itemtype("battleaxe", {cat: "weapon", slot:"hand", dmg: 4, spd: 2, dur: 1});
 	new Itemtype("apple", {cat: "consumable", hp: 2});
 
 	//DOM Association
@@ -182,6 +218,7 @@ function begin() {
 	$iname = document.getElementById("iname");
 	$idesc = document.getElementById("idesc");
 	$islots = document.getElementsByTagName("td");
+	$iequip = document.getElementById("iequip");
 	$acts = document.getElementById("actions");
 
 	//Style setup
@@ -197,6 +234,7 @@ function begin() {
 	//Player setup
 	player = new Actor("player", Math.floor(width/2), Math.floor(height/2));
 	player.stash.add(new Item("sword"));
+	player.stash.equip(player.stash.items[0]);
 
 	//Controls
 	document.addEventListener("keydown", keyinput);
@@ -264,12 +302,16 @@ function Actype(name, symbol, props) {
 }
 //Individual actor
 function Actor(actype, x, y, props) {
-	//Merge
+	//Assign properties
 	Object.assign(this, actorTypes[actype], props);
 	this.x = x;
 	this.y = y;
+
+	//Initialize stash
 	if (this.stash)
 		this.stash = new Stash(this.stash);
+	
+	//Move action
 	this.move = function (dx, dy) {
 		//Fail move if solid in room
 		if (room.checksolid(this.x + dx, this.y + dy))
@@ -280,9 +322,11 @@ function Actor(actype, x, y, props) {
 		this.y += dy;
 		return true;
 	};
+	//Update actor
 	this.update = function () {
-		//Check vitals
+		//Check for death
 		if (this.hp <= 0) {
+			room.add(new Prop("carcass", this.x, this.y));
 			room.remove(this);
 			console.debug("Actor died: ", this);
 			return;
@@ -296,8 +340,9 @@ function Actor(actype, x, y, props) {
 				break;
 		}
 	};
-	this.interact = function() {
-		this.hp -= 1;
+	//Interaction with actor who
+	this.interact = function(who) {
+		this.hp -= who.stash.slot("hand").damage || 1;
 	}
 }
 //Type of object
@@ -324,6 +369,7 @@ function Prop(ptype, x, y, props) {
 function Stash(specify) {
 	this.max = 5;
 	this.items = [];
+	this.equipped = [];
 
 	//Adds an item to the stash
 	this.add = function (item) {
@@ -337,7 +383,37 @@ function Stash(specify) {
 	//Transfers an item from the top of this to other stash
 	this.transfer = function (stash) {
 		stash.add(this.items.pop());
-	}
+	};
+	//Toggles equip on item, swaps within slots
+	this.equip = function (item) {
+		if (this.items.indexOf(item) != - 1) {
+			if (item.equipped && this.equipped.indexOf(item) != - 1) {
+				//Unequips item
+				item.equipped = false;
+				this.equipped.splice(this.equipped.indexOf(item), 1);
+			} else if (!item.equipped && this.equipped.indexOf(item) == - 1) {
+				//Swaps with item currently in slot
+				this.unslot(item.slot);
+				item.equipped = true;
+				this.equipped.push(item);
+			}
+		}
+	};
+	//Gets item in virtual slot
+	this.slot = function (slot) {
+		for (var item of this.equipped) {
+			if (item.slot == slot)
+				return item;
+		}
+		return undefined;
+	};
+	//Unequips item in slot
+	this.unslot = function (slot) {
+		for (var item of this.equipped) {
+			if (item.slot == slot)
+				this.equip(item);
+		}
+	};
 
 	//Parses a stash generator spec string
 	var specs = specify.split(",");
@@ -361,6 +437,8 @@ function Stash(specify) {
 //Type of item
 function Itemtype(name, props) {
 	this.name = name;
+	this.slot = props.slot || "";
+	this.equippable = (this.slot != "");
 	this.category = props.cat || "misc";
 	this.damage = props.dmg || 0;
 	this.speed = props.spd || 0;
@@ -372,6 +450,7 @@ function Itemtype(name, props) {
 //Individual item
 function Item(itype, props) {
 	Object.assign(this, itemTypes[itype], props);
+	this.equipped = false;
 }
 //Individual room
 function Room() {
@@ -455,13 +534,21 @@ function Room() {
 		else if (obj.constructor.name == "Prop")
 			this.prop.splice(this.prop.indexOf(obj), 1);
 	};
+	this.add = function (obj) {
+		if (obj.constructor.name == "Actor")
+			this.actors.push(obj);
+		else if (obj.constructor.name == "Prop")
+			this.props.push(obj);
+		return obj;
+	};
 
 	//Initialize
 	this.tiles = this.generate();
 
 	//@debug Some debuggin stuff
-	this.actors.push(new Actor("rat", 3, 3));
-	this.actors.push(new Actor("rat", 10, 5));
-	this.props.push(new Prop("chest", 1, 1));
-	this.props[0].stash.add(new Item("knife", {dmg: 10}));
+	this.add(new Actor("rat", 3, 3));
+	this.add(new Actor("rat", 10, 5));
+	var testchest = this.add(new Prop("chest", 1, 1));
+	testchest.stash.add(new Item("knife", { damage: 10, name: "HELLA knife" }));
+	testchest.stash.add(new Item("apple"));
 }

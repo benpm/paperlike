@@ -37,7 +37,7 @@ body {
 	color: white;
 	display: inline;
 }
-
+/* All sections */
 #room, #inv {
 	position: absolute;
 	text-align: center;
@@ -51,13 +51,14 @@ body {
 	height: 50%;
 }
 
+/* Inventory section */
 #inv {
 	width: 80%;
 	text-align: left;
 	font-size: unset;
 	left: 10%;
 }
-
+/* Inventory cells */
 #inv #cells {
 	margin: 0;
 	padding: 0;
@@ -70,6 +71,11 @@ body {
 	outline: solid 2px lightgray;
 	text-align: center;
 	height: 25%;
+}
+/* Equipped item slot */
+#inv #cells td.equip {
+	background: lightgray;
+	outline-color: black;
 }
 /* Selected item slot */
 #inv #cells td#select {
@@ -120,7 +126,6 @@ body {
 #inv #inspect #A img {
 	height: 100%;
 	float: left;
-	opacity: 0.2;
 }
 
 #bevel {

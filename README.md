@@ -8,6 +8,7 @@ Paperlike is built with the following schemes in mind:
 - Hierarchy of containers. Example: `Stage -> Room -> Actor -> Stash -> Item -> Property`
 - Game objects inherit their properties from their types. This means all properties of an item, prop or actor are modifiable.
 - Every significant action requires stamina, which is regenerated at the end of your turn.
+- Robust [loot generation system](https://github.com/Lemoncreme/paperlike/blob/master/guide/loot.md) based on phrases
 
 ## Resources
 Paperlike makes use of the following resources:
