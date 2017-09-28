@@ -2,14 +2,14 @@
 <html>
 <head>
 	<title>[Paperlike]</title>
-	<link rel="stylesheet" type="text/css" href="style.css">
+	<link rel="stylesheet" type="text/css" href="css/style.css">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 	<meta name="MobileOptimized" content="640">
-	<script type="text/javascript" src="sprintf.min.js"></script>
-	<script type="text/javascript" src="chance.min.js"></script>
-	<script type="text/javascript" src="paperlike.js"></script>
+	<script type="text/javascript" src="js/sprintf.min.js"></script>
+	<script type="text/javascript" src="js/chance.min.js"></script>
+	<script type="text/javascript" src="js/paperlike.js"></script>
 </head>
-<body>p
+<body>
 	<div id="stats">
 		<div id="hp">HP: 10/10</div>
 		<div id="st">ST: 5/5</div>
@@ -48,26 +48,26 @@
 		</table>
 		<div id="inspect">
 			<div id="A">
-				<img src="check.svg" onmousedown="alert('n/i');">
+				<img src="img/check.svg" onmousedown="alert('n/i');">
 			</div>
 			<div id="B">
 				<h3 id="iname"></h3>
 				<p id="idesc"></p>
 			</div>
 			<div id="C">
-				<img src="exit.svg" onmousedown="Stage.setscene('game');">
+				<img src="img/exit.svg" onmousedown="Stage.setscene('game');">
 			</div>
 		</div>
 	</div>
 	<div id="bevel"></div>
 	<div id="buttons">
-		<img src="up.svg" onmousedown="keyinput('up');">
-		<img src="down.svg" onmousedown="keyinput('down');">
-		<img src="left.svg" onmousedown="keyinput('left');">
-		<img src="right.svg" onmousedown="keyinput('right');">
+		<img src="img/up.svg" onmousedown="keyinput('up');">
+		<img src="img/down.svg" onmousedown="keyinput('down');">
+		<img src="img/left.svg" onmousedown="keyinput('left');">
+		<img src="img/right.svg" onmousedown="keyinput('right');">
 	</div>
 	<div id="buttons2">
-		<img id="invbutton" src="stash.svg" onmousedown="Stage.setscene('inv');">
+		<img id="invbutton" src="img/stash.svg" onmousedown="Stage.setscene('inv');">
 	</div>
 	<div id="actions">
 		
