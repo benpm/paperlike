@@ -79,7 +79,7 @@ function getActions() {
 			extras += " (" + action.hp + " HP)";
 		
 		//Write in DOM
-		$acts.innerHTML += s("<p> • %s %s %s </p>",
+		$acts.innerHTML += s("<p> -> %s %s %s </p>",
 			action.constructor.name == "Actor" ? "attack " :
 			action.constructor.name == "Prop" ? "loot " : "interact ",
 			action.name, extras);
@@ -202,7 +202,7 @@ function begin() {
 
 	//Prop definitions
 	new Proptype("chest", "$", { stash: "max=10", solid: true });
-	new Proptype("carcass", "&", { stash: "max=10", solid: false });
+	new Proptype("carcass", "&", { stash: "max=10" });
 
 	//Item definitions
 	new Itemtype("knife", {cat: "weapon", slot:"hand", dmg: 1, spd: 5, dur: 1});
@@ -349,7 +349,7 @@ function Actor(actype, x, y, props) {
 function Proptype(name, symbol, props) {
 	this.name = name;
 	this.symbol = symbol;
-	this.solid = props.solid || true;
+	this.solid = Boolean(props.solid);
 	propTypes[symbol] = propTypes[name] = this;
 }
 //Individual actor

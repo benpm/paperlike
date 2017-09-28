@@ -1,0 +1,31 @@
+knife:
+  cat: weapon
+  slot: hand
+  dmg: 1
+  spd: 5
+  dur: 1
+
+sword:
+  cat: weapon
+  slot: hand
+  dmg: 2
+  spd: 4
+  dur: 1
+
+longsword:
+  cat: weapon
+  slot: hand
+  dmg: 3
+  spd: 3
+  dur: 1
+
+battleaxe:
+  cat: weapon
+  slot: hand
+  dmg: 4
+  spd: 2
+  dur: 1
+
+apple:
+  cat: consumable
+  hp: 2
