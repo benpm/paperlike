@@ -18,7 +18,7 @@ body {
 }
 
 * {
-	-webkit-user-select: none;
+	user-select: none;
 	cursor: default;
 }
 
@@ -65,19 +65,18 @@ body {
 	height: 80%;
 	table-layout: fixed;
 }
-
+/* Item slot */
 #inv #cells td {
-	outline: solid 1px lightgray;
+	outline: solid 2px lightgray;
 	text-align: center;
 	height: 25%;
 }
-
+/* Selected item slot */
 #inv #cells td#select {
-	outline: dotted 1px white;
 	background: black;
 	color: white;
 }
-
+/* Inspect section */
 #inv #inspect {
 	margin: 0;
 	padding: 0;
@@ -87,28 +86,30 @@ body {
 	line-height: 6px;
 	display: flex;
 }
-
+/* All inspect columns */
 #inv #inspect div {
 	height: 100%;
 	margin: 0;
 	padding: 0;
 }
-
+/* Inspection column */
 #inv #inspect #B {
-	width: 70%;
+	width: 60%;
 }
-
+/* Icon columns */
 #inv #inspect #A, #C {
-	width: 15%;
+	width: 20%;
 }
-
+/* Item name */
 #inv #inspect h3 {
 	margin: 0;
 	padding: 1em 0 0 0;
 }
-
+/* Item description */
 #inv #inspect p {
 	font-size: 13px;
+	word-wrap: break-word;
+    line-height: 1em;
 }
 
 #inv #inspect #C img {
@@ -140,7 +141,7 @@ body {
 	left: 60%;
 }
 
-#buttons img {
+#buttons img, #buttons2 img {
 	width: 75px;
 	padding: 0;
 	margin: 0;
@@ -148,10 +149,21 @@ body {
 
 #buttons2 {
 	position: absolute;
-	width: 200px;
-	height: 200px;
-	top: 70%;
+    left: 20px;
+    bottom: 16px;
+}
+
+#actions {
+	position: absolute;
 	left: 10%;
+	top: 55%;
+	width: 50%;
+	height: 25%;
+}
+
+#actions p {
+	outline: 2px solid gray;
+	padding: 4px 0 4px 6px;
 }
 
 

@@ -1,25 +1,25 @@
 ////Globals
 
 //DOM Elements
-var $room, $inv, $bInv, $islots, $iname, $idesc;
+var $room, $inv, $bInv, $islots, $iname, $idesc, $acts;
 //Misc. globals
 var width, height, xcol, 
-	xrow, player, controls, room, msg;
+	xrow, player, controls, room, actions;
 //Types of tiles
 var t = {};
 //Types of actors
-var actypes = {};
+var actorTypes = {};
 //Types of props
-var ptypes = {};
+var propTypes = {};
 //Types of items
-var itypes = {};
+var itemTypes = {};
 
 
 //// Game Functions
 
 //Simplify strings
 function strimplify(str) {
-	return str.replace(/[aeiou]/g, "").replace(/[^A-z \d.,:]/g, "");
+	return str.replace(/[aeiou]/g, "").replace(/[^A-z \d.,:]/g, "").replace(/,/g, ", ");
 }
 //Redraw inventory boxes
 function invdraw() {
@@ -29,9 +29,61 @@ function invdraw() {
 	}
 	index = 0;
 	for (var item of player.stash.items) {
-		$islots[index].innerText = strimplify(item.type.name);
+		$islots[index].innerText = strimplify(item.name);
 		index ++;
 	}
+}
+//Set manual styles
+function updateStyle() {
+	var bevel = document.getElementById("bevel");
+	bevel.style.width = (window.innerWidth - 32) + "px";
+	bevel.style.height = (window.innerHeight - 48) + "px";
+}
+//Find possible actions
+function getActions() {
+	actions = [];
+
+	//Actors
+	for (var actor of room.actors) {
+		if (objdist(actor, player) == 1) {
+			actions.push(actor);
+		}
+	}
+
+	//Props
+	for (var prop of room.props) {
+		if (objdist(prop, player) <= 1) {
+			actions.push(prop);
+		}
+	}
+
+	//Update actions list in DOM
+	var i = 0, extras = "";
+	$acts.innerHTML = "";
+	for (var action of actions) {
+		extras = "";
+		if (action.stash)
+			extras += " [" + action.stash.items.length + "] items";
+		if (action.hp)
+			extras += " (" + action.hp + " HP)";
+		$acts.innerHTML += "<p> • " +
+			(action.constructor.name == "Actor" ? "attack " :
+			action.constructor.name == "Prop" ? "loot " : "interact ")
+			+ action.name + extras + "</p>";
+		$acts.children[i].onmousedown = function () {
+			if (action.interact) {
+				action.interact();
+				turn();
+			} else
+				console.warn("Missing interact for: ", action);	
+		};
+		i++;
+	}
+}
+//After player taken turn
+function turn() {
+	room.update();
+	getActions();
 }
 //Click on inventory DOM
 function invent(dom) {
@@ -43,18 +95,24 @@ function invent(dom) {
 	dom.id = dom.id ? "" : "select";
 	//Set inspector
 	var item = player.stash.items[parseInt(dom.getAttribute("index"))];
-	$iname.innerHTML = item ? item.type.name : "";
-	$idesc.innerHTML = item ? strimplify(JSON.stringify(Object.keys(item))) : "";
+	$iname.innerHTML = item ? item.name : "";
+	$idesc.innerHTML = item ? strimplify(JSON.stringify(item)) : "";
 }
 //Display alert on error
 function handleError(error) {
 	if (error.message)
 		alert(error.message);
 }
-window.addEventListener("error", handleError, true);
 //Returns random integer
 function randint(a, b) {
 	return Math.floor(Math.random() * (b - a + 1)) - b;
+}
+//Returns chess distance
+function dist(x1, y1, x2, y2) {
+	return Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+}
+function objdist(a, b) {
+	return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 }
 //Handles keyboard input
 function keyinput(event) {
@@ -71,26 +129,26 @@ function keyinput(event) {
 		case "&":
 		case "up":
 		case "ArrowUp":
-			player.move(0, -1);
-			room.update();
+			if (player.move(0, -1))
+				turn();
 			break;
 		case "(":
 		case "down":
 		case "ArrowDown":
-			player.move(0, 1);
-			room.update();
+			if (player.move(0, 1))
+				turn();
 			break;
 		case "%":
 		case "left":
 		case "ArrowLeft":
-			player.move(-1, 0);
-			room.update();
+			if (player.move(-1, 0))
+				turn();
 			break;
 		case "'":
 		case "right":
 		case "ArrowRight":
-			player.move(1, 0);
-			room.update();
+			if (player.move(1, 0))
+				turn();
 			break;
 	}
 }
@@ -107,7 +165,8 @@ function begin() {
 	new Actype("goblin", "g", {hp: 15, armor: 1});
 
 	//Prop definitions
-	new Proptype("chest", "$", {stash: "max=10"});
+	new Proptype("chest", "$", { stash: "max=10", solid: true });
+	new Proptype("carcass", "&", { stash: "max=10", solid: false });
 
 	//Item definitions
 	new Itemtype("knife", {cat: "weapon", dmg: 1, spd: 5, dur: 1});
@@ -117,19 +176,17 @@ function begin() {
 	new Itemtype("apple", {cat: "consumable", hp: 2});
 
 	//DOM Association
-	msg = document.getElementById("msg");
-	input = document.getElementById("input");
 	$room = document.getElementById("room");
 	$inv = document.getElementById("inv");
 	$bInv = document.getElementById("invbutton");
 	$iname = document.getElementById("iname");
 	$idesc = document.getElementById("idesc");
 	$islots = document.getElementsByTagName("td");
+	$acts = document.getElementById("actions");
 
 	//Style setup
-	var bevel = document.getElementById("bevel");
-	bevel.style.width = (window.innerWidth - 32) + "px";
-	bevel.style.height = (window.innerHeight - 48) + "px";
+	window.addEventListener("resize", updateStyle);
+	updateStyle();
 
 	//Stage setup
 	width = 31;
@@ -151,6 +208,8 @@ function begin() {
 	//First update
 	room.redraw();
 }
+//Add handlers
+window.addEventListener("error", handleError, true);
 
 
 //// Global Game Objects
@@ -201,25 +260,35 @@ function Actype(name, symbol, props) {
 	this.armor = props.armor || 0;
 	this.movet = props.movet || "wander";
 	this.stash = props.stash;
-	actypes[symbol] = actypes[name] = this;
+	actorTypes[symbol] = actorTypes[name] = this;
 }
 //Individual actor
 function Actor(actype, x, y, props) {
-	this.type = actypes[actype];
+	//Merge
+	Object.assign(this, actorTypes[actype], props);
 	this.x = x;
 	this.y = y;
-	if (this.type.stash)
-		this.stash = new Stash(this.type.stash);
-	//Merge
-	Object.assign(this, this.type, props);
-	this.move = function(dx, dy) {
-		if (room.tile(this.x + dx, this.y + dy).solid)
-			return;
+	if (this.stash)
+		this.stash = new Stash(this.stash);
+	this.move = function (dx, dy) {
+		//Fail move if solid in room
+		if (room.checksolid(this.x + dx, this.y + dy))
+			return false;
+		
+		//Otherwise, move and return true
 		this.x += dx;
 		this.y += dy;
-	}
-	this.update = function() {
-		switch(this.type.movet) {
+		return true;
+	};
+	this.update = function () {
+		//Check vitals
+		if (this.hp <= 0) {
+			room.remove(this);
+			console.debug("Actor died: ", this);
+			return;
+		}
+		//Movement
+		switch(this.movet) {
 			case "wander":
 				this.move(
 					randint(-1, 1),
@@ -227,21 +296,29 @@ function Actor(actype, x, y, props) {
 				break;
 		}
 	};
+	this.interact = function() {
+		this.hp -= 1;
+	}
 }
 //Type of object
 function Proptype(name, symbol, props) {
 	this.name = name;
 	this.symbol = symbol;
-	ptypes[symbol] = ptypes[name] = this;
+	this.solid = props.solid || true;
+	propTypes[symbol] = propTypes[name] = this;
 }
 //Individual actor
 function Prop(ptype, x, y, props) {
-	this.type = ptypes[ptype];
+	//Merge
+	Object.assign(this, propTypes[ptype], props);
 	this.x = x;
 	this.y = y;
-	this.stash = Stash(props.stash || "");
-	//Merge
-	Object.assign(this, this.type, props);
+	this.stash = new Stash(this.stash || "");
+	this.interact = function () {
+		if (this.stash.items.length) {
+			this.stash.transfer(player.stash);
+		}
+	}
 }
 //Collection of items
 function Stash(specify) {
@@ -252,10 +329,14 @@ function Stash(specify) {
 	this.add = function (item) {
 		if (this.items.length <= this.max)
 			this.items.push(item);
-	}
+	};
 	//Removes an item based on criterion
 	this.remove = function (criteria) {
 		//@todo: remove based on properties
+	};
+	//Transfers an item from the top of this to other stash
+	this.transfer = function (stash) {
+		stash.add(this.items.pop());
 	}
 
 	//Parses a stash generator spec string
@@ -286,77 +367,101 @@ function Itemtype(name, props) {
 	this.durability= props.dur || 0;
 	this.armor = props.armr || 0;
 	this.heal = props.hp || 0;
-	itypes[name] = this;
+	itemTypes[name] = this;
 }
 //Individual item
 function Item(itype, props) {
-	this.type = itypes[itype];
-	//Merge
-	Object.assign(this, this.type, props);
+	Object.assign(this, itemTypes[itype], props);
 }
 //Individual room
 function Room() {
 	//Definitions
-	msg.innerHTML = "start room"
 	this.tiles = "";
 	this.actors = [];
+	this.props = [];
 
 	//Generate room
-	this.generate = function() {
+	this.generate = function () {
 		var newroom = "", tile = "floor";
 		for (var y = 0; y < height; y++) {
 			for (var x = 0; x < width; x++) {
 				tile = "floor";
 
 				if (
-					(x == 0 || 
-					y == 0 || 
-					x == xcol || 
-					y == xrow) 
-					&& x != xcol / 2 
+					(x == 0 ||
+						y == 0 ||
+						x == xcol ||
+						y == xrow)
+					&& x != xcol / 2
 					&& y != xrow / 2)
 					tile = "wall";
 
 				newroom += t[tile].symbol;
 			}
 		}
-		msg.innerHTML = "done room"
 
 		return newroom;
-	}
+	};
 	this.update = function () {
 		for (var i = this.actors.length - 1; i >= 0; i--) {
 			this.actors[i].update();
 		}
 		this.redraw();
-	}
+	};
 	this.tile = function (x, y) {
 		if (x >= width || x < 0
 			|| y >= height || y < 0)
 			return t["bound"];
 		else
 			return t[this.tiles[y * width + x]];
-	}
+	};
 	this.redraw = function redraw() {
 		var tile = "";
 		$room.innerHTML = "";
 		for (var y = 0; y < height; y++) {
 			for (var x = 0; x < width; x++) {
 				tile = this.tile(x, y).symbol;
+				
+				for (var prop of this.props) {
+					if (prop.x == x && prop.y == y)
+						tile = prop.symbol;
+				}
 
 				for (var actor of this.actors) {
 					if (actor.x == x && actor.y == y)
-						tile = actor.type.symbol;
+						tile = actor.symbol;
 				}
 
 				$room.innerHTML += tile;
 			}
 			$room.innerHTML += "<br>";
 		}
-		console.log("redrawn");
-	}
+	};
+	this.checksolid = function (x, y) {
+		if (room.tile(x, y).solid)
+			return true;
+		for (var actor of this.actors) {
+			if (actor.x == x && actor.y == y)
+				return true;
+		}
+		for (var prop of this.props) {
+			if (prop.solid && prop.x == x && prop.y == y)
+				return true;
+		}
+	};
+	this.remove = function (obj) {
+		if (obj.constructor.name == "Actor")
+			this.actors.splice(this.actors.indexOf(obj), 1);
+		else if (obj.constructor.name == "Prop")
+			this.prop.splice(this.prop.indexOf(obj), 1);
+	};
 
 	//Initialize
 	this.tiles = this.generate();
+
+	//@debug Some debuggin stuff
 	this.actors.push(new Actor("rat", 3, 3));
+	this.actors.push(new Actor("rat", 10, 5));
+	this.props.push(new Prop("chest", 1, 1));
+	this.props[0].stash.add(new Item("knife", {dmg: 10}));
 }

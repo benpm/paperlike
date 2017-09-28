@@ -1,13 +1,10 @@
-<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
- <title/>
- <desc/>
-
- <g>
-  <title>background</title>
-  <rect fill="none" id="canvas_background" height="402" width="582" y="-1" x="-1"/>
- </g>
- <g>
-  <title>Layer 1</title>
-  <path transform="rotate(-90 11.88436031341553,11.947737693786621) " id="circle-back-arrow-outline-stroke" fill="#000000" d="m0.38436,11.947738c0,-6.35127 5.14873,-11.5 11.5,-11.5c6.35127,0 11.5,5.14873 11.5,11.5c0,6.35127 -5.14873,11.5 -11.5,11.5c-6.35127,0 -11.5,-5.14873 -11.5,-11.5zm22,0c0,-5.79899 -4.70101,-10.5 -10.5,-10.5c-5.79899,0 -10.5,4.70101 -10.5,10.5c0,5.79899 4.70101,10.5 10.5,10.5c5.79899,0 10.5,-4.70101 10.5,-10.5zm-9.34315,-5.65685l1.41422,1.41421l-4.24264,4.24264l4.24264,4.24264l-1.41422,1.41421l-5.65685,-5.65685l5.65685,-5.65685z"/>
- </g>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 21.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 24 24" style="enable-background:new 0 0 24 24;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:none;}
+</style>
+<path class="st0" d="M0,0h24v24H0V0z"/>
+<path d="M12,2C6.5,2,2,6.5,2,12s4.5,10,10,10s10-4.5,10-10S17.5,2,12,2z M12,14l-4-4h8L12,14z"/>
 </svg>
