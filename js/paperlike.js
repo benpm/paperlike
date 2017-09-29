@@ -188,17 +188,34 @@ function keyinput(event) {
 			break;
 	}
 }
+//Parses requested YAML file
+function reqYaml(path, Type) {
+	var req = new XMLHttpRequest();
+	req.open("GET", path, true);
+	req.send();
+	req.onload = function() {
+		console.debug("loaded ", path);
+		var objects = YAML.parse(req.responseText);
+		for (var obj in objects) {
+			new Type(obj, 
+				objects[obj].sym,
+				objects[obj]);
+		}
+	};
+}
 //Begin
 function begin() {
+
 	//Tile definitions
 	new Tile("floor", ".", {});
 	new Tile("wall", "=", {solid: true});
 	new Tile("bound", " ", {solid: true});
 
 	//Actor definitions
-	new Actype("player", "@", {hp: 10, movet: "none", stash: "max=5"});
-	new Actype("rat", "r", {hp: 5});
-	new Actype("goblin", "g", {hp: 15, armor: 1});
+	//new Actype("player", "@", {hp: 10, movet: "none", stash: "max=5"});
+	//new Actype("rat", "r", {hp: 5});
+	//new Actype("goblin", "g", {hp: 15, armor: 1});
+	reqYaml("resource/actors.yml", Actype);
 
 	//Prop definitions
 	new Proptype("chest", "$", { stash: "max=10", solid: true });

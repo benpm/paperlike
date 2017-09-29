@@ -27,5 +27,5 @@ battleaxe:
   dur: 1
 
 apple:
-  cat: consumable
+  cat: food
   hp: 2
