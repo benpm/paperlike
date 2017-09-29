@@ -3,6 +3,7 @@ player:
   hp: 10
   movet: none
   stash: "max=5"
+  stamina: 5
 
 rat:
   sym: "r"

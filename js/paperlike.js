@@ -1,12 +1,16 @@
-/* global sprintf */
+/* global sprintf, YAML */
+
+//Error messages for Kindle Paperwhite
+window.addEventListener("error", function (e) { alert(e.message + ":" + e.lineno); }, true);
 
 
 ////Globals
 
 //Sprintf.js
 var s = sprintf;
+
 //DOM Elements
-var $room, $inv, $bInv, $islots, $iname, $idesc, $iequip, $acts;
+var $room, $inv, $bInv, $islots, $iname, $idesc, $iequip, $acts, $hp, $st;
 //Misc. globals
 var width, height, xcol, 
 	xrow, player, controls, room, actions;
@@ -34,14 +38,14 @@ function invdraw() {
 	}
 	index = 0;
 
-	for (var item of player.stash.items) {
+	player.stash.items.forEach(function(item) {
 		$islots[index].innerText = strimplify(item.name);
 		if (item.equipped)
 			$islots[index].className = "equip";
 		else
 			$islots[index].className = "";		
 		index ++;
-	}
+	}, this);
 }
 //Set manual styles
 function updateStyle() {
@@ -54,26 +58,26 @@ function getActions() {
 	actions = [];
 
 	//Actors
-	for (var actor of room.actors) {
+	room.actors.forEach(function(actor) {
 		if (objdist(actor, player) == 1) {
 			actions.push(actor);
 		}
-	}
+	}, this);
 
 	//Props
-	for (var prop of room.props) {
+	room.props.forEach(function(prop) {
 		if (objdist(prop, player) <= 1) {
 			actions.push(prop);
 		}
-	}
+	}, this);
 
 	//Update actions list in DOM
-	var i = 0, extras = "";
+	var extras = "";
 	$acts.innerHTML = "";
-	for (var action of actions) {
+	actions.forEach(function(action) {
 		//Assign extra info string
 		extras = "";
-		if (action.stash)
+		if (action.constructor.name == "Prop")
 			extras += " [" + action.stash.items.length + "] items";
 		if (action.hp)
 			extras += " (" + action.hp + " HP)";
@@ -83,31 +87,37 @@ function getActions() {
 			action.constructor.name == "Actor" ? "attack " :
 			action.constructor.name == "Prop" ? "loot " : "interact ",
 			action.name, extras);
-		
+	}, this);
+	for (var i = 0; i < $acts.children.length; i++) {
+		var action = actions[i];
 		//Assign interact function
 		$acts.children[i].onmousedown = function () {
 			if (action.interact) {
+				player.interact(action);
 				action.interact(player);
 				turn();
 			} else
-				console.warn("Missing interact for: ", action);	
+				console.warn("Missing interact for: ", action);
 		};
-		i++;
 	}
 }
 //After player taken turn
 function turn() {
 	room.update();
 	getActions();
+	$hp.innerText = s("HP: %d/%d", player.hp, player.maxhp);
+	$st.innerText = s("ST: %d/%d", player.stamina, player.maxstamina);
 }
 //Click on inventory DOM
 function invent(dom) {
 	//Reset other selected
-	for (var slot of $islots) {
+	Object.values($islots).forEach(function(slot) {
 		slot.id = "";
-	}
+	}, this);
+
 	//Select
 	dom.id = dom.id ? "" : "select";
+
 	//Set inspector
 	var item = player.stash.items[parseInt(dom.getAttribute("index"))];
 	$iname.innerHTML = item ? item.name : "";
@@ -189,19 +199,29 @@ function keyinput(event) {
 	}
 }
 //Parses requested YAML file
-function reqYaml(path, Type) {
+function reqYaml(path, Type, decrement) {
 	var req = new XMLHttpRequest();
 	req.open("GET", path, true);
 	req.send();
 	req.onload = function() {
-		console.debug("loaded ", path);
+		console.debug("loaded " + path);
 		var objects = YAML.parse(req.responseText);
-		for (var obj in objects) {
-			new Type(obj, 
-				objects[obj].sym,
-				objects[obj]);
-		}
+		Object.entries(objects).forEach(function(obj) {
+			new Type(obj[0], 
+				obj[1].sym || obj[1],
+				obj[1]);
+		}, this);
+		decrement();
 	};
+}
+//Finds element in array that matches position
+function matchPos(array, x, y) {
+	return array.find(function (n) {
+		if (n.x == x && n.y == y)
+			return true;
+		else
+			return false;	
+	});
 }
 //Begin
 function begin() {
@@ -210,23 +230,6 @@ function begin() {
 	new Tile("floor", ".", {});
 	new Tile("wall", "=", {solid: true});
 	new Tile("bound", " ", {solid: true});
-
-	//Actor definitions
-	//new Actype("player", "@", {hp: 10, movet: "none", stash: "max=5"});
-	//new Actype("rat", "r", {hp: 5});
-	//new Actype("goblin", "g", {hp: 15, armor: 1});
-	reqYaml("resource/actors.yml", Actype);
-
-	//Prop definitions
-	new Proptype("chest", "$", { stash: "max=10", solid: true });
-	new Proptype("carcass", "&", { stash: "max=10" });
-
-	//Item definitions
-	new Itemtype("knife", {cat: "weapon", slot:"hand", dmg: 1, spd: 5, dur: 1});
-	new Itemtype("sword", {cat: "weapon", slot:"hand", dmg: 2, spd: 4, dur: 1});
-	new Itemtype("longsword", {cat: "weapon", slot:"hand", dmg: 3, spd: 3, dur: 1});
-	new Itemtype("battleaxe", {cat: "weapon", slot:"hand", dmg: 4, spd: 2, dur: 1});
-	new Itemtype("apple", {cat: "consumable", hp: 2});
 
 	//DOM Association
 	$room = document.getElementById("room");
@@ -237,6 +240,8 @@ function begin() {
 	$islots = document.getElementsByTagName("td");
 	$iequip = document.getElementById("iequip");
 	$acts = document.getElementById("actions");
+	$hp = document.getElementById("hp");
+	$st = document.getElementById("st");
 
 	//Style setup
 	window.addEventListener("resize", updateStyle);
@@ -263,8 +268,6 @@ function begin() {
 	//First update
 	room.redraw();
 }
-//Add handlers
-window.addEventListener("error", handleError, true);
 
 
 //// Global Game Objects
@@ -312,6 +315,8 @@ function Actype(name, symbol, props) {
 	this.name = name;
 	this.symbol = symbol;
 	this.hp = props.hp || 10;
+	this.stamina = props.stamina || 3;
+	this.strength = props.strength || 1;
 	this.armor = props.armor || 0;
 	this.movet = props.movet || "wander";
 	this.stash = props.stash;
@@ -323,6 +328,8 @@ function Actor(actype, x, y, props) {
 	Object.assign(this, actorTypes[actype], props);
 	this.x = x;
 	this.y = y;
+	this.maxhp = this.hp;
+	this.maxstamina = this.stamina;
 
 	//Initialize stash
 	if (this.stash)
@@ -348,6 +355,13 @@ function Actor(actype, x, y, props) {
 			console.debug("Actor died: ", this);
 			return;
 		}
+		//Regain stamina
+		if (this.hp > this.maxhp / 2)
+			this.stamina += this.strength;
+		else
+			this.hp += this.strength;	
+		if (this.stamina > this.maxstamina)
+			this.stamina = this.maxstamina;	
 		//Movement
 		switch(this.movet) {
 			case "wander":
@@ -358,9 +372,19 @@ function Actor(actype, x, y, props) {
 		}
 	};
 	//Interaction with actor who
-	this.interact = function(who) {
-		this.hp -= who.stash.slot("hand").damage || 1;
-	}
+	this.interact = function (who) {
+		if (this.stamina > 0) {
+			who.hp -= this.attack();
+			this.stamina -= 2;
+		}
+	};
+	//Calculates total damage this actor can inflict
+	this.attack = function (multiplier) {
+		var dmg = 0;
+		if (this.stash.slot("hand"))
+			dmg += this.stash.slot("hand").damage;
+		return Math.max(Math.ceil(dmg * (multiplier || 1)), 1);
+	};
 }
 //Type of object
 function Proptype(name, symbol, props) {
@@ -418,24 +442,24 @@ function Stash(specify) {
 	};
 	//Gets item in virtual slot
 	this.slot = function (slot) {
-		for (var item of this.equipped) {
-			if (item.slot == slot)
-				return item;
+		for (var i = 0; i < this.equipped.length; i++) {
+			if (this.equipped[i].slot == slot)
+				return this.equipped[i];
 		}
 		return undefined;
 	};
 	//Unequips item in slot
 	this.unslot = function (slot) {
-		for (var item of this.equipped) {
+		this.equipped.forEach(function(item) {
 			if (item.slot == slot)
 				this.equip(item);
-		}
+		}, this);
 	};
 
 	//Parses a stash generator spec string
 	var specs = specify.split(",");
 	var generate = false;
-	for (var spec of specs) {
+	specs.forEach(function(spec) {
 		var tag = spec.split("=")[0] || spec;
 		var val = parseInt(spec.split("=")[1]) || 0;
 		switch (tag) {
@@ -449,7 +473,7 @@ function Stash(specify) {
 				this.add(Item("sword"));
 				break;
 		}
-	}
+	}, this);
 }
 //Type of item
 function Itemtype(name, props) {
@@ -518,15 +542,15 @@ function Room() {
 			for (var x = 0; x < width; x++) {
 				tile = this.tile(x, y).symbol;
 				
-				for (var prop of this.props) {
+				this.props.forEach(function (prop) {
 					if (prop.x == x && prop.y == y)
 						tile = prop.symbol;
-				}
-
-				for (var actor of this.actors) {
+				}, this);
+				
+				this.actors.forEach(function (actor) {
 					if (actor.x == x && actor.y == y)
 						tile = actor.symbol;
-				}
+				}, this);
 
 				$room.innerHTML += tile;
 			}
@@ -534,16 +558,21 @@ function Room() {
 		}
 	};
 	this.checksolid = function (x, y) {
+		var match;
+
+		//Tiles
 		if (room.tile(x, y).solid)
 			return true;
-		for (var actor of this.actors) {
-			if (actor.x == x && actor.y == y)
-				return true;
-		}
-		for (var prop of this.props) {
-			if (prop.solid && prop.x == x && prop.y == y)
-				return true;
-		}
+		
+		//Search actors
+		match = matchPos(this.actors, x, y);
+		if (match) return true;
+
+		//Search props
+		match = matchPos(this.props, x, y);
+		if (match && match.solid) return true;
+
+		return false;
 	};
 	this.remove = function (obj) {
 		if (obj.constructor.name == "Actor")
@@ -569,3 +598,17 @@ function Room() {
 	testchest.stash.add(new Item("knife", { damage: 10, name: "HELLA knife" }));
 	testchest.stash.add(new Item("apple"));
 }
+
+//Load resources
+alert(s("%t,%t,%t", Object.assign, Object.values, Object.entries));
+var toload = 3;
+reqYaml("resource/actors.yml", Actype, function () { toload--; });
+reqYaml("resource/items.yml", Itemtype, function () { toload--; });
+reqYaml("resource/props.yml", Proptype, function () { toload--; });
+function loader() {
+	if (toload > 0)
+		setTimeout(loader, 150);
+	else
+		begin();
+}
+loader();

@@ -9,7 +9,7 @@
 	<script type="text/javascript" src="js/sprintf.min.js"></script>
 	<script type="text/javascript" src="js/chance.min.js"></script>
 	<script type="text/javascript" src="js/yaml.min.js"></script>
-	<script type="text/javascript" src="js/paperlike.js"></script>
+	<script type="text/javascript" src="js/polyfill.js"></script>
 </head>
 <body>
 	<div id="stats">
@@ -63,17 +63,15 @@
 	</div>
 	<div id="bevel"></div>
 	<div id="buttons">
-		<img src="img/up.svg" onmousedown="keyinput('up');">
-		<img src="img/down.svg" onmousedown="keyinput('down');">
-		<img src="img/left.svg" onmousedown="keyinput('left');">
-		<img src="img/right.svg" onmousedown="keyinput('right');">
+		<img id="up" src="img/up.svg" onmousedown="keyinput('up');">
+		<img id="down" src="img/down.svg" onmousedown="keyinput('down');">
+		<img id="left" src="img/left.svg" onmousedown="keyinput('left');">
+		<img id="right" src="img/right.svg" onmousedown="keyinput('right');">
 	</div>
 	<div id="buttons2">
 		<img id="invbutton" src="img/stash.svg" onmousedown="Stage.setscene('inv');">
 	</div>
-	<div id="actions">
-		
-	</div>
-	<script type="text/javascript">begin();</script>
+	<div id="actions"></div>
 </body>
+<script type="text/javascript" src="js/paperlike.js"></script>
 </html>

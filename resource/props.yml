@@ -1,0 +1,8 @@
+chest:
+  sym: "$"
+  stash: "max=10"
+  solid: true
+
+carcass:
+  sym: "&"
+  stash: "max=5"
