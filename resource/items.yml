@@ -29,3 +29,6 @@ battleaxe:
 apple:
   cat: food
   hp: 2
+
+entrails:
+  cat: trash

@@ -13,8 +13,11 @@
 </head>
 <body>
 	<div id="stats">
-		<div id="hp">HP: 10/10</div>
-		<div id="st">ST: 5/5</div>
+		<div id="turns"></div>
+		<div id="hp"></div>
+		<div id="st"></div>
+		<div id="ar"></div>
+		<div id="dmg"></div>
 	</div>
 	<div id="room"></div>
 	<div style="display: none;" id="inv">
@@ -27,25 +30,25 @@
 				<td index="4" onmousedown="invent(this);"></td>
 			</tr>
 			<tr>
-				<td index="5" onmousedown="invent(this);">.</td>
-				<td index="6" onmousedown="invent(this);">.</td>
-				<td index="7" onmousedown="invent(this);">.</td>
-				<td index="8" onmousedown="invent(this);">.</td>
-				<td index="9" onmousedown="invent(this);">.</td>
+				<td index="5" onmousedown="invent(this);"></td>
+				<td index="6" onmousedown="invent(this);"></td>
+				<td index="7" onmousedown="invent(this);"></td>
+				<td index="8" onmousedown="invent(this);"></td>
+				<td index="9" onmousedown="invent(this);"></td>
 			</tr>
 			<tr>
-				<td index="10" onmousedown="invent(this);">.</td>
-				<td index="11" onmousedown="invent(this);">.</td>
-				<td index="12" onmousedown="invent(this);">.</td>
-				<td index="13" onmousedown="invent(this);">.</td>
-				<td index="14" onmousedown="invent(this);">.</td>
+				<td index="10" onmousedown="invent(this);"></td>
+				<td index="11" onmousedown="invent(this);"></td>
+				<td index="12" onmousedown="invent(this);"></td>
+				<td index="13" onmousedown="invent(this);"></td>
+				<td index="14" onmousedown="invent(this);"></td>
 			</tr>
 			<tr>
-				<td index="15" onmousedown="invent(this);">/</td>
-				<td index="16" onmousedown="invent(this);">/</td>
-				<td index="17" onmousedown="invent(this);">/</td>
-				<td index="18" onmousedown="invent(this);">/</td>
-				<td index="19" onmousedown="invent(this);">/</td>
+				<td index="15" onmousedown="invent(this);"></td>
+				<td index="16" onmousedown="invent(this);"></td>
+				<td index="17" onmousedown="invent(this);"></td>
+				<td index="18" onmousedown="invent(this);"></td>
+				<td index="19" onmousedown="invent(this);"></td>
 			</tr>
 		</table>
 		<div id="inspect">
@@ -63,10 +66,13 @@
 	</div>
 	<div id="bevel"></div>
 	<div id="buttons">
-		<img id="up" src="img/up.svg" onmousedown="keyinput('up');">
-		<img id="down" src="img/down.svg" onmousedown="keyinput('down');">
-		<img id="left" src="img/left.svg" onmousedown="keyinput('left');">
-		<img id="right" src="img/right.svg" onmousedown="keyinput('right');">
+		<map name="padmap">
+			<area shape="poly" coords="0,128,38,38,128,128,38,218" href="javascript:keyinput('left');">
+			<area shape="poly" coords="38,38,128,0,218,38,128,128" href="javascript:keyinput('up');">
+			<area shape="poly" coords="38,218,128,256,218,218,128,128" href="javascript:keyinput('down');">
+			<area shape="poly" coords="128,128,218,38,256,128,218,218" href="javascript:keyinput('right');">
+		</map>
+		<img id="pad" src="img/buttons.svg" usemap="#padmap">
 	</div>
 	<div id="buttons2">
 		<img id="invbutton" src="img/stash.svg" onmousedown="Stage.setscene('inv');">

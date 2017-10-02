@@ -1,0 +1,10 @@
+floor:
+  sym: "."
+
+wall:
+  sym: "="
+  solid: true
+
+bound:
+  sym: " "
+  solid: true
