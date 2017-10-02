@@ -26,9 +26,31 @@ battleaxe:
   spd: 2
   dur: 1
 
+whip:
+  cat: weapon
+  slot: hand
+  dmg: 1
+  spd: 6
+  dur: 1
+
+helmet:
+  cat: armor
+  slot: head
+  armr: 2
+  spd: -1
+  dur: 2
+
 apple:
   cat: food
   hp: 2
+
+bread:
+  cat: food
+  hp: 3
+
+fine meal:
+  cat: food
+  hp: 5
 
 entrails:
   cat: trash
