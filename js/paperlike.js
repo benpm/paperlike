@@ -17,7 +17,7 @@ var $room, $inv, $bInv, $islots,
 	$hp, $st, $ar, $dmg, $turns,
 	$exit, $msg, $itrash, $iuse;
 //Misc. globals
-var width, height, xcol, 
+var width, height, xcol,
 	xrow, player, controls, room, actions, turns = 0;
 //Types of tiles
 var t = {};
@@ -97,11 +97,11 @@ function getActions() {
 			extras += " [" + action.stash.items.length + "] items";
 		if (action.hp)
 			extras += " (" + action.hp + " HP)";
-		
+
 		//Write in DOM
 		$acts.innerHTML += s("<p class='%s'> %s %s %s %s </p>",
 			type == "Prop" || player.stamina > 1 ? "" : "invalid",
-			type == "Prop" || player.stamina > 1 ? "->" : "X",	
+			type == "Prop" || player.stamina > 1 ? "->" : "X",
 			type == "Actor" ? "attack " :
 			type == "Prop" ? "loot " : "interact ",
 			action.name, extras);
@@ -180,7 +180,7 @@ function invDelete() {
 	//Select and equip if equippable
 	var item = invSelected();
 	if (item.equipped)
-		player.stash.equip(item);	
+		player.stash.equip(item);
 	player.stash.remove(item);
 
 	//Redraw / reinspect item
@@ -192,7 +192,7 @@ function invUse() {
 	//Select and equip if equippable
 	var item = invSelected();
 	if (!item)
-		return;	
+		return;
 	if (item.use(player))
 		player.stash.remove(item);
 
@@ -270,7 +270,7 @@ function reqYaml(path, Type, decrement) {
 		console.debug("loaded " + path);
 		var objects = YAML.parse(req.responseText);
 		Object.entries(objects).forEach(function(obj) {
-			new Type(obj[0], 
+			new Type(obj[0],
 				obj[1].sym || obj[1],
 				obj[1]);
 		}, this);
@@ -283,7 +283,7 @@ function matchPos(array, x, y) {
 		if (n.x == x && n.y == y)
 			return true;
 		else
-			return false;	
+			return false;
 	});
 }
 //Loads several files
@@ -440,19 +440,19 @@ function Actor(actype, x, y, props) {
 	//Initialize stash
 	if (this.stash)
 		this.stash = new Stash(this.stash);
-	
+
 	//Move action
 	this.move = function (dx, dy) {
 		//Fail move if solid in room
 		if (room.checksolid(this.x + dx, this.y + dy))
 			return false;
-		
+
 		//Otherwise, move and return true
 		if (this.stamina > 0) {
 			this.x += dx;
 			this.y += dy;
 		} else
-			log(s("%s is too tired to move", this.name));	
+			log(s("%s is too tired to move", this.name));
 		return true;
 	};
 	//Update actor
@@ -471,7 +471,7 @@ function Actor(actype, x, y, props) {
 		if (chance.bool({likelihood: 80}))
 			this.stamina += this.strength;
 		else
-			this.hp += this.strength;	
+			this.hp += this.strength;
 
 		//Cap some properties
 		this.stamina = cap(this.stamina, this.maxstamina);
@@ -498,7 +498,7 @@ function Actor(actype, x, y, props) {
 
 			//Stamina cost
 			this.stamina -= staminaCost;
-			
+
 			//Journal
 			if (dmgGiven > 0 && dmgTaken > 0)
 				log(s("%s hit %s for %d HP", this.name, who.name, dmgTaken));
@@ -518,7 +518,7 @@ function Actor(actype, x, y, props) {
 		//Total miss
 		if (chance.bool({ likelihood: 10 }))
 			return 0;
-		
+
 		//Calculate damage
 		return this.damage(multiplier) + randint(-1, 1);
 	};
@@ -645,8 +645,8 @@ function Stash(specify) {
 					nint(val, 1, "-") || (nint(val, 0, "-") + 1));
 				break;
 			default:
-				names.push(tag);	
-				break;	
+				names.push(tag);
+				break;
 		}
 	}, this);
 
@@ -696,6 +696,8 @@ function Item(itype, props) {
 				return true;
 			else throw error
 		}
+		if (who === player)
+			turn();
 		return true;
 	}
 }
@@ -747,12 +749,12 @@ function Room() {
 		for (var y = 0; y < height; y++) {
 			for (var x = 0; x < width; x++) {
 				tile = this.tile(x, y).symbol;
-				
+
 				this.props.forEach(function (prop) {
 					if (prop.x == x && prop.y == y)
 						tile = prop.symbol;
 				}, this);
-				
+
 				this.actors.forEach(function (actor) {
 					if (actor.x == x && actor.y == y)
 						tile = actor.symbol;
@@ -769,7 +771,7 @@ function Room() {
 		//Tiles
 		if (room.tile(x, y).solid)
 			return true;
-		
+
 		//Search actors
 		match = matchPos(this.actors, x, y);
 		if (match) return true;
@@ -800,7 +802,7 @@ function Room() {
 	//@debug Some debuggin stuff
 	for (var i = 0; i < 5; i++)
 		this.add(new Actor(chance.pickone(actorCategories.monster),
-			randint(1, xcol), 
+			randint(1, xcol),
 			randint(1, xrow), { name: chance.word({ syllables: 2 }) }));
 	this.add(new Prop("chest", 1, 1, {stash: "num=1-5"}));
 }
