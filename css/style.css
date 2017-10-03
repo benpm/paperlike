@@ -22,6 +22,14 @@ body {
 	cursor: default;
 }
 
+.invalid {
+	opacity: 0.25;
+	cursor: default;
+}
+.invalid:hover {
+	cursor: default;
+}
+
 #stats {
 	position: absolute;
 	width: 100%;
@@ -90,7 +98,8 @@ body {
 }
 #inv #cells td.equip {
 	background: lightgray;
-	outline-color: black;
+	outline: none;
+	border: 2px solid black;
 }
 #inv #cells td#select {
 	background: black;
@@ -113,12 +122,12 @@ body {
 	padding: 0;
 }
 #inv #inspect #B {
-	width: 60%;
+	width: 50%;
 	overflow: hidden;
 }
 /* Icon columns */
 #A {
-	width: 35%;
+	width: 300px;
 }
 #inv #inspect h3 {
 	margin: 0;
@@ -203,9 +212,6 @@ img:hover {
 	cursor: pointer;
 }
 
-.invalid {
-	opacity: 0.25;
-}
 
 .disabled {
 	opacity: 0.2;

@@ -9,7 +9,7 @@ rat:
   sym: "r"
   cat: monster
   hp: 5
-  stash: "num=1-3,entrails"
+  stash: "num=1,entrails"
 
 goblin:
   sym: "g"

@@ -15,7 +15,7 @@ var s = sprintf;
 var $room, $inv, $bInv, $islots,
 	$iname, $idesc, $iequip, $acts,
 	$hp, $st, $ar, $dmg, $turns,
-	$exit, $msg, $itrash;
+	$exit, $msg, $itrash, $iuse;
 //Misc. globals
 var width, height, xcol, 
 	xrow, player, controls, room, actions, turns = 0;
@@ -45,6 +45,7 @@ function invdraw() {
 	var i = 0;
 	for (i = 0; i < 20; i++) {
 		$islots[i].innerText = "/";
+		$islots[i].className = "invalid";
 	}
 	for (i = 0; i < player.stash.max; i++) {
 		$islots[i].innerText = ".";
@@ -145,14 +146,18 @@ function invent(dom) {
 	$iname.innerHTML = item ? item.name : "";
 	$idesc.innerHTML = item ? strimplify(JSON.stringify(item)) : "";
 	$iequip.src = "img/unchecked.svg";
-	$iequip.style.opacity = 0.2;
-	$itrash.style.opacity = 0.2;
+	$iequip.className = "invalid";
+	$itrash.className = "invalid";
+	$iuse.className = "invalid";
 	if (item && item.equippable) {
 		$iequip.src = item.equipped ? "img/checked.svg" : "img/unchecked.svg";
-		$iequip.style.opacity = 1;
+		$iequip.className = "";
 	}
 	if (item) {
-		$itrash.style.opacity = 1;
+		$itrash.className = "";
+	}
+	if (item && item.use()) {
+		$iuse.className = "";
 	}
 }
 //Equip button is pressed
@@ -175,8 +180,21 @@ function invDelete() {
 	//Select and equip if equippable
 	var item = invSelected();
 	if (item.equipped)
-		player.stash.unequip(item);	
+		player.stash.equip(item);	
 	player.stash.remove(item);
+
+	//Redraw / reinspect item
+	invdraw();
+	invent(document.getElementById("select"));
+}
+//Equip button is pressed
+function invUse() {
+	//Select and equip if equippable
+	var item = invSelected();
+	if (!item)
+		return;	
+	if (item.use(player))
+		player.stash.remove(item);
 
 	//Redraw / reinspect item
 	invdraw();
@@ -242,7 +260,6 @@ function keyinput(event) {
 				turn();
 			break;
 	}
-	$msg.innerText = "...";
 }
 //Parses requested YAML file
 function reqYaml(path, Type, decrement) {
@@ -286,10 +303,8 @@ function multireq(paths, handlers) {
 }
 //Journals a message
 function log(msg) {
-	if ($msg.innerText != "...")
-		$msg.innerText = s("%s, then %s", $msg.innerText, msg);
-	else
-		$msg.innerText = msg;
+	$msg.innerText = s("%s, then %s",
+		$msg.innerText.split(", then ")[1] || $msg.innerText, msg);
 	console.debug(msg);
 }
 //Run some compatiblity tests
@@ -314,6 +329,7 @@ function begin() {
 	$islots = document.getElementsByTagName("td");
 	$iequip = document.getElementById("iequip");
 	$itrash = document.getElementById("itrash");
+	$iuse = document.getElementById("iuse");
 	$acts = document.getElementById("actions");
 	$hp = document.getElementById("hp");
 	$st = document.getElementById("st");
@@ -452,11 +468,10 @@ function Actor(actype, x, y, props) {
 		}
 
 		//Regain stamina OR hp
-		if (this.hp > this.maxhp / 2)
-			if (chance.bool())
-				this.stamina += this.strength;
-			else
-				this.hp += this.strength;	
+		if (chance.bool({likelihood: 80}))
+			this.stamina += this.strength;
+		else
+			this.hp += this.strength;	
 
 		//Cap some properties
 		this.stamina = cap(this.stamina, this.maxstamina);
@@ -473,13 +488,21 @@ function Actor(actype, x, y, props) {
 	};
 	//Interaction with actor who
 	this.interact = function (who) {
-		if (this.stamina > 1) {
-			var attack = this.attack();
-			who.hp -= attack;
-			this.stamina -= 2;
-			if (attack > 0)
-				log(s("%s hit %s for %d HP", this.name, who.name, attack));
-			else
+		var inHand = this.stash.slot("hand");
+		var staminaCost = inHand ? inHand.weight : 0;
+
+		if (this.stamina >= staminaCost) {
+			//Apply damage to who
+			var dmgGiven = this.attack();
+			var dmgTaken = who.defend(dmgGiven);
+
+			//Stamina cost
+			this.stamina -= staminaCost;
+			
+			//Journal
+			if (dmgGiven > 0 && dmgTaken > 0)
+				log(s("%s hit %s for %d HP", this.name, who.name, dmgTaken));
+			else if (dmgGiven == 0)
 				log(s("%s missed", this.name));
 		}
 	};
@@ -492,7 +515,20 @@ function Actor(actype, x, y, props) {
 	};
 	//Calculates a turn of attack (with randomness)
 	this.attack = function (multiplier) {
+		//Total miss
+		if (chance.bool({ likelihood: 10 }))
+			return 0;
+		
+		//Calculate damage
 		return this.damage(multiplier) + randint(-1, 1);
+	};
+	//Calculates and applies incoming damage
+	this.defend = function (dmg) {
+		var total = Math.max(0, dmg - this.armor());
+		this.hp -= total;
+		if (total == 0)
+			log(s("%s defended", this.name))
+		return total;
 	};
 	//Calculates total armor an actor has
 	this.armor = function (multiplier) {
@@ -604,7 +640,9 @@ function Stash(specify) {
 				this.max = int(val);
 				break;
 			case "num":
-				num = randint(nint(val, 0, "-"), nint(val, 1, "-"));
+				num = randint(
+					nint(val, 0, "-"),
+					nint(val, 1, "-") || (nint(val, 0, "-") + 1));
 				break;
 			default:
 				names.push(tag);	
@@ -626,12 +664,13 @@ function Itemtype(name, props) {
 	this.name = name;
 	this.slot = props.slot || "";
 	this.equippable = (this.slot != "");
-	this.category = props.cat || "misc";
-	this.damage = props.dmg || 0;
-	this.speed = props.spd || 0;
-	this.durability= props.dur || 0;
-	this.armor = props.armr || 0;
-	this.heal = props.hp || 0;
+	this.category = props.category || "misc";
+	this.damage = props.damage || 0;
+	this.weight = props.weight || 0;
+	this.speed = 5 - this.weight;
+	this.durability = props.durability || 0;
+	this.armor = props.armor || 0;
+	this.heal = props.heal || 0;
 	itemTypes[name] = this;
 	if (!itemCategories[this.category])
 		itemCategories[this.category] = [];
@@ -642,6 +681,23 @@ function Item(itype, props) {
 	this.type = itemTypes[itype].name;
 	Object.assign(this, itemTypes[itype], props);
 	this.equipped = false;
+	this.use = function (who) {
+		//Return true if item was used
+		try {
+			switch (this.category) {
+				case "food":
+					who.hp += this.heal;
+					break;
+				default:
+					return false;
+			}
+		} catch (error) {
+			if (error instanceof TypeError)
+				return true;
+			else throw error
+		}
+		return true;
+	}
 }
 //Individual room
 function Room() {

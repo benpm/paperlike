@@ -1,56 +1,77 @@
 knife:
-  cat: weapon
+  category: weapon
   slot: hand
-  dmg: 1
-  spd: 5
-  dur: 1
+  damage: 1
+  weight: 1
+  durability: 1
 
 sword:
-  cat: weapon
+  category: weapon
   slot: hand
-  dmg: 2
-  spd: 4
-  dur: 1
+  damage: 2
+  weight: 2
+  durability: 1
 
 longsword:
-  cat: weapon
+  category: weapon
   slot: hand
-  dmg: 3
-  spd: 3
-  dur: 1
+  damage: 3
+  weight: 3
+  durability: 1
 
 battleaxe:
-  cat: weapon
+  category: weapon
   slot: hand
-  dmg: 4
-  spd: 2
-  dur: 1
+  damage: 4
+  weight: 4
+  durability: 1
 
 whip:
-  cat: weapon
+  category: weapon
   slot: hand
-  dmg: 1
-  spd: 6
-  dur: 1
+  damage: 1
+  weight: 0
+  durability: 1
 
 helmet:
-  cat: armor
+  category: armor
   slot: head
-  armr: 2
-  spd: -1
-  dur: 2
+  armor: 2
+  weight: 1
+  durability: 2
+
+chainmail:
+  category: armor
+  slot: chest
+  armor: 3
+  weight: 3
+  durability: 2
+
+boots:
+  category: armor
+  slot: feet
+  armor: 1
+  weight: 1
+  durability: 2
+
+gauntlet:
+  category: armor
+  slot: wrist
+  armor: 1
+  weight: 1
+  durability: 1
 
 apple:
-  cat: food
-  hp: 2
+  category: food
+  heal: 2
 
 bread:
-  cat: food
-  hp: 3
+  category: food
+  heal: 3
 
 fine meal:
-  cat: food
-  hp: 5
+  category: food
+  heal: 5
 
 entrails:
-  cat: trash
+  category: trash
