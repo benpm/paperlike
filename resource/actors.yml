@@ -7,12 +7,22 @@ player:
 
 rat:
   sym: "r"
-  cat: "monster"
+  cat: monster
   hp: 5
   stash: "num=1-3,entrails"
 
 goblin:
   sym: "g"
-  cat: "monster"
+  cat: monster
   hp: 15
+  armor: 2
+  movet: follow
   stash: "num=3-6,entrails"
+
+troglodyte:
+  sym: "T"
+  cat: monster
+  hp: 25
+  armor: 4
+  movet: follow
+  stash: "num=3-6,entrails,sword"

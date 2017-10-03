@@ -27,13 +27,13 @@ body {
 	width: 100%;
 	height: 16px;
 	top: 6px;
-	left: 32px;
+	left: 16px;
 	font-size: .8em;
 }
 
 #stats div {
 	padding: 0;
-	margin: 0 10% 0 0;
+	margin: 0 2.5% 0 0;
 	text-align: center;
 	color: white;
 	display: inline;
@@ -53,6 +53,19 @@ body {
 }
 #room {
 	font-size: 5vw;
+	line-height: 1em;
+}
+
+#msg {
+	position: absolute;
+	text-align: center;
+	top: 60%;
+	left: 0;
+	width: 100%;
+	font-size: 1.5em;
+	background: black;
+	color: white;
+	padding: .5em 0 .5em 0;
 }
 
 /* Inventory section */
@@ -62,7 +75,6 @@ body {
 	font-size: unset;
 	left: 10%;
 }
-/* Inventory cells */
 #inv #cells {
 	margin: 0;
 	padding: 0;
@@ -70,25 +82,21 @@ body {
 	height: 80%;
 	table-layout: fixed;
 }
-/* Item slot */
 #inv #cells td {
 	outline: solid 2px lightgray;
 	text-align: center;
 	height: 25%;
 	cursor: pointer;
 }
-/* Equipped item slot */
 #inv #cells td.equip {
 	background: lightgray;
 	outline-color: black;
 }
-/* Selected item slot */
 #inv #cells td#select {
 	background: black;
 	color: white;
 	cursor: default;
 }
-/* Inspect section */
 #inv #inspect {
 	margin: 0;
 	padding: 0;
@@ -98,41 +106,29 @@ body {
 	line-height: 6px;
 	display: flex;
 }
-/* All inspect columns */
 #inv #inspect div {
 	display: inline-block;
 	height: 100%;
 	margin: 0;
 	padding: 0;
 }
-/* Inspection column */
 #inv #inspect #B {
 	width: 60%;
 	overflow: hidden;
 }
 /* Icon columns */
-#A, #C {
-	width: 15%;
+#A {
+	width: 35%;
 }
-#C {
-	float: right;
-}
-/* Item name */
 #inv #inspect h3 {
 	margin: 0;
-	padding: 12px 0 0 0;
+	padding: 1em 0 0 0;
 	line-height: 0;
 }
-/* Item description */
 #inv #inspect p {
 	font-size: 13px;
 	word-wrap: break-word;
     line-height: 1em;
-}
-
-#inv #inspect #C img {
-	height: 100%;
-	float: right;
 }
 
 #inv #inspect #A img {
@@ -156,7 +152,7 @@ body {
 	right: 32px;
 	width: 256px;
 	height: 256px;
-	transform: scale(0.75, 0.75);
+	transform: scale(0.5, 0.5);
 	transform-origin: 100% 100%;
 }
 
@@ -192,35 +188,54 @@ img:hover {
 #actions {
 	position: absolute;
 	left: 10%;
-	top: 55%;
+	top: 45%;
 	width: 70%;
 	height: 25%;
+	max-width: 300px;
 }
 
 #actions p {
 	outline: 2px solid gray;
 	padding: 0 0 0 6px;
+}
+
+#actions p:hover {
 	cursor: pointer;
-	max-width: 300px;
 }
 
 .invalid {
 	opacity: 0.25;
-	cursor: default;
 }
 
 .disabled {
 	opacity: 0.2;
 }
 
+/* SMALLER SCREENS */
 @media screen and (min-width: 600px) {
 	#room {
 		font-size: 1.25em;
 	}
+	#buttons {
+		transform: scale(.75, .75);
+	}
 }
 
+/* DESKTOP ENVIRONMENT */
 @media screen and (min-width: 1000px) {
 	#room {
 		font-size: 2em;
+	}
+	#stats div {
+		font-size: 1.25em;
+	}
+	#inv {
+		width: 50%;
+		left: 25%;
+		font-size: 1.5em;
+	}
+	#actions {
+		top: 48px;
+		left: 48px;
 	}
 }

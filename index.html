@@ -20,6 +20,7 @@
 		<div id="dmg"></div>
 	</div>
 	<div id="room"></div>
+	<div id="msg">u awaken</div>
 	<div style="display: none;" id="inv">
 		<table id="cells">
 			<tr>
@@ -54,13 +55,11 @@
 		<div id="inspect">
 			<div id="A">
 				<img style="opacity: 0.2;" id="iequip" src="img/unchecked.svg" onmousedown="invEquip();">
+				<img style="opacity: 0.2;" id="itrash" src="img/trash.svg" onmousedown="invDelete();">
 			</div>
 			<div id="B">
 				<h3 id="iname"></h3>
 				<p id="idesc"></p>
-			</div>
-			<div id="C">
-				<img src="img/exit.svg" onmousedown="Stage.setscene('game');">
 			</div>
 		</div>
 	</div>
@@ -76,6 +75,7 @@
 	</div>
 	<div id="buttons2">
 		<img id="invbutton" src="img/stash.svg" onmousedown="Stage.setscene('inv');">
+		<img id="exit" style="display: none" src="img/exit.svg" onmousedown="Stage.setscene('game');">
 	</div>
 	<div id="actions"></div>
 </body>

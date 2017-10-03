@@ -12,7 +12,10 @@ window.addEventListener("error", function (e) { alert(e.message + ":" + e.lineno
 var s = sprintf;
 
 //DOM Elements
-var $room, $inv, $bInv, $islots, $iname, $idesc, $iequip, $acts, $hp, $st, $ar, $dmg, $turns;
+var $room, $inv, $bInv, $islots,
+	$iname, $idesc, $iequip, $acts,
+	$hp, $st, $ar, $dmg, $turns,
+	$exit, $msg, $itrash;
 //Misc. globals
 var width, height, xcol, 
 	xrow, player, controls, room, actions, turns = 0;
@@ -45,6 +48,7 @@ function invdraw() {
 	}
 	for (i = 0; i < player.stash.max; i++) {
 		$islots[i].innerText = ".";
+		$islots[i].className = "";
 	}
 
 	i = 0;
@@ -53,7 +57,7 @@ function invdraw() {
 		if (item.equipped)
 			$islots[i].className = "equip";
 		else
-			$islots[i].className = "";		
+			$islots[i].className = "";
 		i ++;
 	}, this);
 }
@@ -82,22 +86,23 @@ function getActions() {
 	}, this);
 
 	//Update actions list in DOM
-	var extras = "";
+	var extras = "", type;
 	$acts.innerHTML = "";
 	actions.forEach(function(action) {
 		//Assign extra info string
+		type = action.constructor.name;
 		extras = "";
-		if (action.constructor.name == "Prop")
+		if (type == "Prop")
 			extras += " [" + action.stash.items.length + "] items";
 		if (action.hp)
 			extras += " (" + action.hp + " HP)";
 		
 		//Write in DOM
 		$acts.innerHTML += s("<p class='%s'> %s %s %s %s </p>",
-			player.stamina > 0 ? "" : "invalid",
-			player.stamina > 0 ? "->" : "X",	
-			action.constructor.name == "Actor" ? "attack " :
-			action.constructor.name == "Prop" ? "loot " : "interact ",
+			type == "Prop" || player.stamina > 1 ? "" : "invalid",
+			type == "Prop" || player.stamina > 1 ? "->" : "X",	
+			type == "Actor" ? "attack " :
+			type == "Prop" ? "loot " : "interact ",
 			action.name, extras);
 	}, this);
 	for (var i = 0; i < $acts.children.length; i++) {
@@ -106,7 +111,7 @@ function getActions() {
 		if ($acts.children[i].className != "invalid")
 		$acts.children[i].onmousedown = function () {
 			if (action.interact) {
-				player.interact(action);
+				if (type == "Actor") player.interact(action);
 				action.interact(player);
 				turn();
 			} else
@@ -141,9 +146,13 @@ function invent(dom) {
 	$idesc.innerHTML = item ? strimplify(JSON.stringify(item)) : "";
 	$iequip.src = "img/unchecked.svg";
 	$iequip.style.opacity = 0.2;
+	$itrash.style.opacity = 0.2;
 	if (item && item.equippable) {
 		$iequip.src = item.equipped ? "img/checked.svg" : "img/unchecked.svg";
 		$iequip.style.opacity = 1;
+	}
+	if (item) {
+		$itrash.style.opacity = 1;
 	}
 }
 //Equip button is pressed
@@ -154,8 +163,20 @@ function invEquip() {
 		return;
 	else {
 		if (player.stash.equip(item))
-			turn();	
+			turn();
 	}
+
+	//Redraw / reinspect item
+	invdraw();
+	invent(document.getElementById("select"));
+}
+//Equip button is pressed
+function invDelete() {
+	//Select and equip if equippable
+	var item = invSelected();
+	if (item.equipped)
+		player.stash.unequip(item);	
+	player.stash.remove(item);
 
 	//Redraw / reinspect item
 	invdraw();
@@ -221,6 +242,7 @@ function keyinput(event) {
 				turn();
 			break;
 	}
+	$msg.innerText = "...";
 }
 //Parses requested YAML file
 function reqYaml(path, Type, decrement) {
@@ -262,6 +284,14 @@ function multireq(paths, handlers) {
 	}
 	checker();
 }
+//Journals a message
+function log(msg) {
+	if ($msg.innerText != "...")
+		$msg.innerText = s("%s, then %s", $msg.innerText, msg);
+	else
+		$msg.innerText = msg;
+	console.debug(msg);
+}
 //Run some compatiblity tests
 function runtests() {
 	alert(s("[RUNTESTS]\n\
@@ -283,12 +313,15 @@ function begin() {
 	$idesc = document.getElementById("idesc");
 	$islots = document.getElementsByTagName("td");
 	$iequip = document.getElementById("iequip");
+	$itrash = document.getElementById("itrash");
 	$acts = document.getElementById("actions");
 	$hp = document.getElementById("hp");
 	$st = document.getElementById("st");
 	$ar = document.getElementById("ar");
 	$dmg = document.getElementById("dmg");
 	$turns = document.getElementById("turns");
+	$exit = document.getElementById("exit");
+	$msg = document.getElementById("msg");
 
 	//Style setup
 	window.addEventListener("resize", updateStyle);
@@ -301,7 +334,8 @@ function begin() {
 	xrow = height - 1;
 
 	//Player setup
-	player = new Actor("player", Math.floor(width/2), Math.floor(height/2));
+	player = new Actor("player",
+		Math.floor(width / 2), Math.floor(height / 2), {name: "u"});
 	player.stash.add(new Item("sword"));
 	player.stash.equip(player.stash.items[0]);
 
@@ -326,23 +360,27 @@ var Stage = {
 		switch (this.scene) {
 			case "game":
 				$room.style.display = "none";
+				$acts.style.display = "none";
 				break;
 			case "inv":
 				$inv.style.display = "none";
 				$bInv.className = "";
+				$exit.style.display = "none";
+				$bInv.style.display = "";
 				break;
 		}
 		this.scene = scene;
 		switch (scene) {
 			case "game":
 				$room.style.display = "";
+				$acts.style.display = "";
 				break;
 			case "inv":
 				invdraw();
 				$inv.style.display = "";
-				$bInv.className = "disabled";
+				$bInv.style.display = "none";
+				$exit.style.display = "";
 				break;
-			case "char": break;
 		}
 	}
 };
@@ -376,6 +414,7 @@ function Actype(name, symbol, props) {
 //Individual actor
 function Actor(actype, x, y, props) {
 	//Assign properties
+	this.type = actorTypes[actype].name;
 	Object.assign(this, actorTypes[actype], props);
 	this.x = x;
 	this.y = y;
@@ -393,19 +432,25 @@ function Actor(actype, x, y, props) {
 			return false;
 		
 		//Otherwise, move and return true
-		this.x += dx;
-		this.y += dy;
+		if (this.stamina > 0) {
+			this.x += dx;
+			this.y += dy;
+		} else
+			log(s("%s is too tired to move", this.name));	
 		return true;
 	};
 	//Update actor
 	this.update = function () {
 		//Check for death
 		if (this.hp <= 0) {
-			room.add(new Prop("carcass", this.x, this.y, {stash: this.stash}));
+			room.add(new Prop("carcass",
+				this.x, this.y,
+				{ stash: this.stash, name: s("%s's carcass", this.name) }));
 			room.remove(this);
-			console.debug("Actor died: ", this);
+			log(s("%s died", this.name))
 			return;
 		}
+
 		//Regain stamina OR hp
 		if (this.hp > this.maxhp / 2)
 			if (chance.bool())
@@ -428,9 +473,14 @@ function Actor(actype, x, y, props) {
 	};
 	//Interaction with actor who
 	this.interact = function (who) {
-		if (this.stamina > 0) {
-			who.hp -= this.attack();
+		if (this.stamina > 1) {
+			var attack = this.attack();
+			who.hp -= attack;
 			this.stamina -= 2;
+			if (attack > 0)
+				log(s("%s hit %s for %d HP", this.name, who.name, attack));
+			else
+				log(s("%s missed", this.name));
 		}
 	};
 	//Calculates total damage this actor can inflict
@@ -472,6 +522,7 @@ function Proptype(name, symbol, props) {
 //Individual actor
 function Prop(ptype, x, y, props) {
 	//Merge
+	this.type = propTypes[ptype].name;
 	Object.assign(this, propTypes[ptype], props);
 	this.x = x;
 	this.y = y;
@@ -491,12 +542,12 @@ function Stash(specify) {
 
 	//Adds an item to the stash
 	this.add = function (item) {
-		if (this.items.length <= this.max)
+		if (this.items.length < this.max)
 			this.items.push(item);
 	};
 	//Removes an item based on criterion
-	this.remove = function (criteria) {
-		//@todo: remove based on properties
+	this.remove = function (item) {
+		this.items.splice(this.items.indexOf(item), 1);
 	};
 	//Transfers an item from the top of this to other stash
 	this.transfer = function (stash) {
@@ -509,12 +560,14 @@ function Stash(specify) {
 				//Unequips item
 				item.equipped = false;
 				this.equipped.splice(this.equipped.indexOf(item), 1);
+				log(s("u unequipped %s", item.name));
 				return true;
 			} else if (!item.equipped && this.equipped.indexOf(item) == - 1) {
 				//Swaps with item currently in slot
 				this.unslot(item.slot);
 				item.equipped = true;
 				this.equipped.push(item);
+				log(s("u equipped %s", item.name));
 				return true;
 			}
 		}
@@ -586,6 +639,7 @@ function Itemtype(name, props) {
 }
 //Individual item
 function Item(itype, props) {
+	this.type = itemTypes[itype].name;
 	Object.assign(this, itemTypes[itype], props);
 	this.equipped = false;
 }
@@ -691,7 +745,7 @@ function Room() {
 	for (var i = 0; i < 5; i++)
 		this.add(new Actor(chance.pickone(actorCategories.monster),
 			randint(1, xcol), 
-			randint(1, xrow), { name: chance.first() }));
+			randint(1, xrow), { name: chance.word({ syllables: 2 }) }));
 	this.add(new Prop("chest", 1, 1, {stash: "num=1-5"}));
 }
 

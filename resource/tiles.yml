@@ -2,7 +2,7 @@ floor:
   sym: "."
 
 wall:
-  sym: "="
+  sym: "#"
   solid: true
 
 bound:
