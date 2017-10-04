@@ -26,9 +26,6 @@ body {
 	opacity: 0.25;
 	cursor: default;
 }
-.invalid:hover {
-	cursor: default;
-}
 
 #stats {
 	position: absolute;
@@ -215,6 +212,9 @@ img:hover {
 
 .disabled {
 	opacity: 0.2;
+}
+.invalid:hover {
+	cursor: default;
 }
 
 /* SMALLER SCREENS */

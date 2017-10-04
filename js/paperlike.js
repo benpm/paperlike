@@ -18,7 +18,8 @@ var $room, $inv, $bInv, $islots,
 	$exit, $msg, $itrash, $iuse;
 //Misc. globals
 var width, height, xcol,
-	xrow, player, controls, room, actions, turns = 0;
+	xrow, player, controls, room, actions, turns = 0,
+	msgbuffer = [];
 //Types of tiles
 var t = {};
 //Types of actors
@@ -87,41 +88,49 @@ function getActions() {
 	}, this);
 
 	//Update actions list in DOM
-	var extras = "", type;
+	var extras = "", type, valid;
 	$acts.innerHTML = "";
-	actions.forEach(function(action) {
+	actions.forEach(function(target) {
 		//Assign extra info string
-		type = action.constructor.name;
+		type = target.constructor.name;
 		extras = "";
 		if (type == "Prop")
-			extras += " [" + action.stash.items.length + "] items";
-		if (action.hp)
-			extras += " (" + action.hp + " HP)";
+			extras += " [" + target.stash.items.length + "] items";
+		if (target.hp)
+			extras += " (" + target.hp + " HP)";
+		
+		//Determine validity
+		valid = true;
+		if ((type == "Actor" && player.stamina < player.weight())
+			|| (type == "Prop" && player.stash.items.length >= player.stash.max)
+			|| (type == "Prop" && target.stash.items.length == 0))
+			valid = false;
 
 		//Write in DOM
 		$acts.innerHTML += s("<p class='%s'> %s %s %s %s </p>",
-			type == "Prop" || player.stamina > 1 ? "" : "invalid",
+			valid ? "" : "invalid",
 			type == "Prop" || player.stamina > 1 ? "->" : "X",
 			type == "Actor" ? "attack " :
 			type == "Prop" ? "loot " : "interact ",
-			action.name, extras);
+			target.name, extras);
 	}, this);
+
+	//Assign interaction function
 	for (var i = 0; i < $acts.children.length; i++) {
-		var action = actions[i];
-		//Assign interact function
 		if ($acts.children[i].className != "invalid")
-		$acts.children[i].onmousedown = function () {
-			if (action.interact) {
-				if (type == "Actor") player.interact(action);
-				action.interact(player);
-				turn();
-			} else
-				console.warn("Missing interact for: ", action);
-		};
+			$acts.children[i].onmousedown = perfAction;
+		$acts.children[i].setAttribute("index", i.toString());
 	}
+}
+//Perform action
+function perfAction() {
+	player.interact(actions[int(this.getAttribute("index"))]);
+	turn();
 }
 //After player taken turn
 function turn() {
+	if (room.actors.indexOf(player) == -1)
+		return;	
 	room.update();
 	getActions();
 	$turns.innerText = s("turns: %d", turns);
@@ -129,6 +138,10 @@ function turn() {
 	$st.innerText = s("ST: %d/%d", player.stamina, player.maxstamina);
 	$ar.innerText = s("AR: %d", player.armor());
 	$dmg.innerText = s("DMG: %d", player.damage());
+	$msg.innerText = msgbuffer.join(", then ");
+	if (!$msg.innerText)
+		$msg.innerText = "...";	
+	msgbuffer.length = 0;
 	turns++;
 }
 //Click on inventory DOM
@@ -221,7 +234,14 @@ function dist(x1, y1, x2, y2) {
 	return Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
 }
 function objdist(a, b) {
-	return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+	return dist(a.x, a.y, b.x, b.y);
+}
+//Returns chess direction
+function dir(x1, y1, x2, y2) {
+	return [Math.sign(x2 - x1), Math.sign(y2 - y1)];
+}
+function objdir(a, b) {
+	return dir(a.x, a.y, b.x, b.y);
 }
 //Handles keyboard input
 function keyinput(event) {
@@ -303,8 +323,7 @@ function multireq(paths, handlers) {
 }
 //Journals a message
 function log(msg) {
-	$msg.innerText = s("%s, then %s",
-		$msg.innerText.split(", then ")[1] || $msg.innerText, msg);
+	msgbuffer.push(msg);
 	console.debug(msg);
 }
 //Run some compatiblity tests
@@ -434,6 +453,7 @@ function Actor(actype, x, y, props) {
 	Object.assign(this, actorTypes[actype], props);
 	this.x = x;
 	this.y = y;
+	this.aggro = false;
 	this.maxhp = this.hp;
 	this.maxstamina = this.stamina;
 
@@ -467,6 +487,10 @@ function Actor(actype, x, y, props) {
 			return;
 		}
 
+		//Check for flee
+		if (this.hp <= this.maxhp / 3)
+			this.movet = "flee";
+
 		//Regain stamina OR hp
 		if (chance.bool({likelihood: 80}))
 			this.stamina += this.strength;
@@ -484,26 +508,59 @@ function Actor(actype, x, y, props) {
 					randint(-1, 1),
 					randint(-1, 1));
 				break;
+			case "follow":
+				if (objdist(this, player) <= 2)
+					this.move(
+						objdir(this, player)[0],
+						objdir(this, player)[1]
+					);
+				else
+					this.move(
+						randint(-1, 1),
+						randint(-1, 1));
+				this.aggro = true;
+				break;
+			case "flee":
+				if (objdist(this, player) <= 5)
+					this.move(
+						-objdir(this, player)[0],
+						-objdir(this, player)[1]
+					);
+				else
+					this.move(
+						randint(-1, 1),
+						randint(-1, 1));
+				this.aggro = false;
+				break;
+		}
+		if (this !== player) {
+			if (this.aggro && objdist(this, player) == 1)
+				this.interact(player);
 		}
 	};
 	//Interaction with actor who
 	this.interact = function (who) {
-		var inHand = this.stash.slot("hand");
-		var staminaCost = inHand ? inHand.weight : 0;
+		if (who.constructor.name == "Actor") {
+			var staminaCost = this.weight();
 
-		if (this.stamina >= staminaCost) {
-			//Apply damage to who
-			var dmgGiven = this.attack();
-			var dmgTaken = who.defend(dmgGiven);
+			if (this.stamina >= staminaCost) {
+				//Apply damage to who
+				var dmgGiven = this.attack();
+				var dmgTaken = who.defend(dmgGiven);
 
-			//Stamina cost
-			this.stamina -= staminaCost;
+				//Stamina cost
+				this.stamina -= staminaCost;
 
-			//Journal
-			if (dmgGiven > 0 && dmgTaken > 0)
-				log(s("%s hit %s for %d HP", this.name, who.name, dmgTaken));
-			else if (dmgGiven == 0)
-				log(s("%s missed", this.name));
+				//Journal
+				if (dmgGiven > 0 && dmgTaken > 0)
+					log(s("%s/%s -%d HP", this.name, who.name, dmgTaken));
+				else if (dmgGiven == 0)
+					log(s("%s missed", this.name));
+			}
+		} else {
+			if (who.stash.items.length) {
+				who.stash.transfer(player.stash);
+			}
 		}
 	};
 	//Calculates total damage this actor can inflict
@@ -526,8 +583,9 @@ function Actor(actype, x, y, props) {
 	this.defend = function (dmg) {
 		var total = Math.max(0, dmg - this.armor());
 		this.hp -= total;
-		if (total == 0)
+		if (total == 0 && dmg > 0)
 			log(s("%s defended", this.name))
+		this.aggro = true;
 		return total;
 	};
 	//Calculates total armor an actor has
@@ -542,6 +600,11 @@ function Actor(actype, x, y, props) {
 		if (this.stash.slot("feet"))
 			armor += this.stash.slot("feet").armor;
 		return Math.max(Math.ceil(armor * (multiplier || 1)), 0);
+	};
+	//Calculates total carrying weight
+	this.weight = function () {
+		var inHand = this.stash.slot("hand");
+		return inHand ? inHand.weight : 0;
 	};
 }
 //Type of object
@@ -564,11 +627,6 @@ function Prop(ptype, x, y, props) {
 	this.y = y;
 	if (typeof this.stash != "object")
 		this.stash = new Stash(this.stash || "");
-	this.interact = function () {
-		if (this.stash.items.length) {
-			this.stash.transfer(player.stash);
-		}
-	}
 }
 //Collection of items
 function Stash(specify) {
@@ -625,39 +683,47 @@ function Stash(specify) {
 		}, this);
 	};
 
-	//Parses a loot phrase
-	var specs = specify.split(",");
-	var num = 0,
-		names = [];
-	specs.forEach(function (spec) {
-		//Parse word
-		var tag = spec.split("=")[0] || spec;
-		var val = spec.split("=")[1] || "";
+	//Parses a loot sentence, then phrases, then terms
+	var phrases = specify.split(" & ");
+	phrases.forEach(function (phrase) {
+		var specs = phrase.split(",");
+		var num = 0,
+			names = [];
+		specs.forEach(function (spec) {
+			//Parse word
+			var tag = spec.split("=")[0] || spec;
+			var val = spec.split("=")[1] || "";
 
-		//Operate on word
-		switch (tag) {
-			case "max":
-				this.max = int(val);
-				break;
-			case "num":
-				num = randint(
-					nint(val, 0, "-"),
-					nint(val, 1, "-") || (nint(val, 0, "-") + 1));
-				break;
-			default:
-				names.push(tag);
-				break;
+			//Operate on word
+			switch (tag) {
+				case "max":
+					this.max = int(val);
+					break;
+				case "num":
+					num = randint(
+						nint(val, 0, "-"),
+						nint(val, 1, "-") || (nint(val, 0, "-")));
+					if (num > this.max)
+						this.max = num;
+					break;
+				default:
+					if (itemCategories[tag])
+						names = names.concat(itemCategories[tag]);
+					else
+						names.push(tag);
+					break;
+			}
+		}, this);
+
+		//Generate stash from phrase
+		if (num > 0) {
+			if (names.length == 0)
+				names = Object.keys(itemTypes)
+			for (var i = 0; i < num; i++) {
+				this.add(new Item(chance.pickone(names)));
+			}
 		}
 	}, this);
-
-	//Generate stash from phrase
-	if (num > 0) {
-		if (names.length == 0)
-			names = Object.keys(itemTypes)
-		for (var i = 0; i < num; i++) {
-			this.add(new Item(chance.pickone(names)));
-		}
-	}
 }
 //Type of item
 function Itemtype(name, props) {
@@ -682,11 +748,14 @@ function Item(itype, props) {
 	Object.assign(this, itemTypes[itype], props);
 	this.equipped = false;
 	this.use = function (who) {
-		//Return true if item was used
+		//Return true if item was used, or if no who, when item is usable
 		try {
 			switch (this.category) {
 				case "food":
+					if (who.hp == who.maxhp)
+						return false;	
 					who.hp += this.heal;
+					log(s("u ate %s, +%d HP", this.name, this.heal))
 					break;
 				default:
 					return false;
@@ -800,11 +869,12 @@ function Room() {
 	this.tiles = this.generate();
 
 	//@debug Some debuggin stuff
-	for (var i = 0; i < 5; i++)
-		this.add(new Actor(chance.pickone(actorCategories.monster),
-			randint(1, xcol),
-			randint(1, xrow), { name: chance.word({ syllables: 2 }) }));
-	this.add(new Prop("chest", 1, 1, {stash: "num=1-5"}));
+	for (var i = 0; i < 2; i++)
+		this.add(new Actor("rat",
+			randint(1, xcol - 1),
+			randint(1, xrow - 1), { name: chance.word({ syllables: 2 }) }));
+	this.add(new Prop("chest", 1, 1, { stash: "num=1-5" }));
+	this.add(new Prop("chest", 2, 1, { stash: "num=1,weapon & num=1,food" }));
 }
 
 

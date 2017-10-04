@@ -9,7 +9,7 @@ rat:
   sym: "r"
   cat: monster
   hp: 5
-  stash: "num=1,entrails"
+  stash: "num=1,entrails,bone"
 
 goblin:
   sym: "g"
@@ -17,7 +17,7 @@ goblin:
   hp: 15
   armor: 2
   movet: follow
-  stash: "num=3-6,entrails"
+  stash: "num=2,entrails,bone & num=1,weapon"
 
 troglodyte:
   sym: "T"
@@ -25,4 +25,4 @@ troglodyte:
   hp: 25
   armor: 4
   movet: follow
-  stash: "num=3-6,entrails,sword"
+  stash: "num=2,entrails,bone & num=1,weapon"
