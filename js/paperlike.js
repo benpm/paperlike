@@ -17,7 +17,7 @@ var $room, $inv, $bInv, $islots,
 	$hp, $st, $ar, $dmg, $turns,
 	$exit, $msg, $itrash, $iuse;
 //Misc. globals
-var width, height, xcol,
+var width, height, halfheight, halfwidth, xcol,
 	xrow, player, controls, room, actions, turns = 0,
 	msgbuffer = [];
 //Types of tiles
@@ -229,6 +229,10 @@ function nint(string, n, sep) {
 function cap(n, max) {
 	return Math.min(n, max);
 }
+//Replaces character in string
+function repChar(str, i, chr) {
+	return str.substr(0, i) + chr + str.substr(i + 1);
+}
 //Returns chess distance
 function dist(x1, y1, x2, y2) {
 	return Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
@@ -238,7 +242,9 @@ function objdist(a, b) {
 }
 //Returns chess direction
 function dir(x1, y1, x2, y2) {
-	return [Math.sign(x2 - x1), Math.sign(y2 - y1)];
+	return [
+		Math.sign(Math.round((x2 - x1) / 5)),
+		Math.sign(Math.round((y2 - y1) / 5))];
 }
 function objdir(a, b) {
 	return dir(a.x, a.y, b.x, b.y);
@@ -254,30 +260,40 @@ function keyinput(event) {
 	else
 		key = event;
 
-	switch(key) {
+	switch (key) {
+		case "w":
 		case "&":
 		case "up":
 		case "ArrowUp":
 			if (player.move(0, -1))
 				turn();
 			break;
+		case "s":
 		case "(":
 		case "down":
 		case "ArrowDown":
 			if (player.move(0, 1))
 				turn();
 			break;
+		case "a":
 		case "%":
 		case "left":
 		case "ArrowLeft":
 			if (player.move(-1, 0))
 				turn();
 			break;
+		case "d":
 		case "'":
 		case "right":
 		case "ArrowRight":
 			if (player.move(1, 0))
 				turn();
+			break;
+		case "i":
+			Stage.setscene("inv");
+			break;
+		case "Escape":
+			Stage.setscene("game");
 			break;
 	}
 }
@@ -367,6 +383,8 @@ function begin() {
 	height = 11;
 	xcol = width - 1;
 	xrow = height - 1;
+	halfwidth = xcol / 2;
+	halfheight = xrow / 2;
 
 	//Player setup
 	player = new Actor("player",
@@ -776,10 +794,35 @@ function Room() {
 	this.tiles = "";
 	this.actors = [];
 	this.props = [];
+	var self = this;
 
 	//Generate room
+	this.gen = {
+		wall: function (x1, y1, x2, y2) {
+			for (var x = x1; x <= x2; x++) {
+				for (var y = y1; y <= y2; y++) {
+					self.tile(x, y, "wall");
+				}
+			}
+		},
+		hall: function (x1, y1, x2, y2) {
+			for (var x = x1; x <= x2; x++) {
+				for (var y = y1; y <= y2; y++) {
+					self.tile(x, y, "floor");
+					if (x2 == x1) {
+						self.tile(x + 1, y, "wall");
+						self.tile(x - 1, y, "wall");
+					} else {
+						self.tile(x, y + 1, "wall");
+						self.tile(x, y - 1, "wall");
+					}
+				}
+			}
+		}
+	};
 	this.generate = function () {
-		var newroom = "", tile = "floor";
+		this.tiles = "";
+		var tile = "floor";
 		for (var y = 0; y < height; y++) {
 			for (var x = 0; x < width; x++) {
 				tile = "floor";
@@ -793,11 +836,12 @@ function Room() {
 					&& y != xrow / 2)
 					tile = "wall";
 
-				newroom += t[tile].symbol;
+				this.tiles += t[tile].symbol;
 			}
 		}
 
-		return newroom;
+		this.gen.hall(0, halfheight, xcol, halfheight);
+		this.gen.hall(halfwidth, 0, halfwidth, xrow);
 	};
 	this.update = function () {
 		for (var i = this.actors.length - 1; i >= 0; i--) {
@@ -805,10 +849,14 @@ function Room() {
 		}
 		this.redraw();
 	};
-	this.tile = function (x, y) {
+	this.tile = function (x, y, val) {
 		if (x >= width || x < 0
 			|| y >= height || y < 0)
 			return t["bound"];
+		else if (val) {
+			this.tiles = repChar(this.tiles, y * width + x, t[val].symbol);
+			return;
+		}
 		else
 			return t[this.tiles[y * width + x]];
 	};
@@ -866,7 +914,7 @@ function Room() {
 	};
 
 	//Initialize
-	this.tiles = this.generate();
+	this.generate();
 
 	//@debug Some debuggin stuff
 	for (var i = 0; i < 2; i++)
