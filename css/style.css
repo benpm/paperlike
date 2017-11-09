@@ -1,3 +1,8 @@
+@font-face {
+	font-family: "tile";
+	src: url("../font/tileset.ttf");
+}
+
 @keyframes blink {
 	from {
 		opacity: 0;
@@ -57,6 +62,7 @@ body {
 	height: 50%;
 }
 #room {
+	font-family: tile;
 	font-size: 5vw;
 	line-height: 1em;
 }

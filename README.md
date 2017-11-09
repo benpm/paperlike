@@ -9,6 +9,7 @@ Paperlike is built with the following schemes in mind:
 - Game objects inherit their properties from their types. This means all properties of an item, prop or actor are modifiable.
 - Every significant action requires stamina, which is regenerated at the end of your turn.
 - Robust [loot generation system](https://github.com/Lemoncreme/paperlike/blob/master/guide/loot.md) based on phrases
+- Every room of the dungeon is simulated "at once" (more about how this is done later). If your character leaves a room, you can come back and it will have experienced the same amount of time you have.
 
 ## Resources
 Paperlike makes use of the following resources:

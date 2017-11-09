@@ -20,9 +20,19 @@ goblin:
   stash: "num=2,entrails,bone & num=1,weapon"
 
 troglodyte:
-  sym: "T"
+  sym: "g"
   cat: monster
   hp: 25
   armor: 4
   movet: follow
+  stamina: 7
+  stash: "num=2,entrails,bone & num=1,weapon"
+
+demon:
+  sym: "g"
+  cat: monster
+  hp: 35
+  armor: 5
+  movet: follow
+  stamina: 10
   stash: "num=2,entrails,bone & num=1,weapon"

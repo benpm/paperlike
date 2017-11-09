@@ -4,5 +4,5 @@ chest:
   solid: true
 
 carcass:
-  sym: "&"
+  sym: "$"
   stash: "max=5"

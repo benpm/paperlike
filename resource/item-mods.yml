@@ -1,0 +1,13 @@
+rusty:
+  damage: -1
+  durability: -1
+
+fine:
+  damage: 1
+
+enhanced:
+  damage: 2
+  weight: -1
+
+enchanted:
+  damage: 3

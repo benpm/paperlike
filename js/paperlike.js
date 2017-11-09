@@ -18,7 +18,7 @@ var $room, $inv, $bInv, $islots,
 	$exit, $msg, $itrash, $iuse;
 //Misc. globals
 var width, height, halfheight, halfwidth, xcol,
-	xrow, player, controls, room, actions, turns = 0,
+	yrow, player, controls, room, rooms = {}, actions, turns = 0,
 	msgbuffer = [];
 //Types of tiles
 var t = {};
@@ -243,8 +243,8 @@ function objdist(a, b) {
 //Returns chess direction
 function dir(x1, y1, x2, y2) {
 	return [
-		Math.sign(Math.round((x2 - x1) / 5)),
-		Math.sign(Math.round((y2 - y1) / 5))];
+		Math.sign(x2 - x1),
+		Math.sign(y2 - y1)];
 }
 function objdir(a, b) {
 	return dir(a.x, a.y, b.x, b.y);
@@ -342,6 +342,33 @@ function log(msg) {
 	msgbuffer.push(msg);
 	console.debug(msg);
 }
+//Transitions to a new room
+function transRoom(x, y) {
+	//Swap out rooms, move player
+	log(s("moved to %d,%d", x, y));
+	var newRoom = rooms[[x, y]] || new Room(x, y);
+	room.lastVisit = turns;
+	room.remove(player);
+	room = newRoom;
+
+	//Simulate difference in turns
+	if (room.lastVisit < turns - 1) {
+		var turnsDiff = turns - room.lastVisit - 1;
+		console.info(s("simulating %d turns...", turnsDiff));
+		for (var i = 0; i < turnsDiff; i++) {
+			room.update(true);
+		}
+	}
+
+	//Add player back in
+	room.add(player);
+
+	//Move player to appropriate position
+	if (player.x == xcol) player.x = 0;
+	else if (player.x == 0) player.x = xcol;
+	if (player.y == yrow) player.y = 0;
+	else if (player.y == 0) player.y = yrow;
+}
 //Run some compatiblity tests
 function runtests() {
 	alert(s("[RUNTESTS]\n\
@@ -379,12 +406,12 @@ function begin() {
 	updateStyle();
 
 	//Stage setup
-	width = 31;
-	height = 11;
+	width = 21;
+	height = 15;
 	xcol = width - 1;
-	xrow = height - 1;
+	yrow = height - 1;
 	halfwidth = xcol / 2;
-	halfheight = xrow / 2;
+	halfheight = yrow / 2;
 
 	//Player setup
 	player = new Actor("player",
@@ -396,7 +423,7 @@ function begin() {
 	document.addEventListener("keydown", keyinput);
 
 	//Generate room
-	room = new Room();
+	room = new Room(0, 0);
 	room.actors.push(player);
 
 	//First update
@@ -482,8 +509,14 @@ function Actor(actype, x, y, props) {
 	//Move action
 	this.move = function (dx, dy) {
 		//Fail move if solid in room
-		if (room.checksolid(this.x + dx, this.y + dy))
+		if (room.checksolid(this.x + dx, this.y + dy)) {
+			if (this === player &&
+				room.tile(this.x + dx, this.y + dy).name == "bound") {
+				transRoom(room.x - dx, room.y - dy);
+				return true;
+			}
 			return false;
+		}
 
 		//Otherwise, move and return true
 		if (this.stamina > 0) {
@@ -789,11 +822,17 @@ function Item(itype, props) {
 	}
 }
 //Individual room
-function Room() {
+function Room(x, y) {
 	//Definitions
 	this.tiles = "";
+	this.data = Array(width * height);
 	this.actors = [];
 	this.props = [];
+	this.x = x;
+	this.y = y;
+	this.lastVisit = turns;
+
+	rooms[[x, y]] = this;
 	var self = this;
 
 	//Generate room
@@ -818,36 +857,112 @@ function Room() {
 					}
 				}
 			}
+		},
+		isOpen: function (x, y, skipMake) {
+
+			if (self.tile(x, y).name == "bound")
+				return true;
+
+			if (self.data[y * width + x])
+				return false;
+			
+			self.data[y * width + x] = 1;
+
+			if (self.checksolid(x, y))
+				return false;	
+
+			if (this.isOpen(x + 1, y, skipMake)) return true;
+			if (this.isOpen(x - 1, y, skipMake)) return true;
+			if (this.isOpen(x, y + 1, skipMake)) return true;
+			if (this.isOpen(x, y - 1, skipMake)) return true;
+
+			return false;
+		},
+		chop: function (x1, y1, x2, y2, dir) {
+			//Prevents placing walls on exits
+			if (x2 - x1 < 6 || y2 - y1 < 6)
+				return;	
+			
+			if (dir) {
+				//Vertical segment
+				var x = randint(x1 + 3, x2 - 3);
+				if (x == halfwidth)
+					return;	
+				this.wall(x, y1, x, y2);
+
+				//Door
+				if (chance.bool({ likelihood: 75 }))
+					self.tile(x, randint(y1 + 1, y2 - 1), "floor");
+				
+				//Recursively split
+				if (chance.bool())
+					this.chop(x, y1, x2, y2, false);
+				else
+					this.chop(x1, y1, x, y2, false);				
+			} else {
+				//Horizontal segment
+				var y = randint(y1 + 3, y2 - 3);
+				if (y == halfheight)
+					return;	
+				this.wall(x1, y, x2, y);
+
+				//Door
+				if (chance.bool({ likelihood: 75 }))
+					self.tile(randint(x1 + 1, x2 - 1), y, "floor");
+				
+				//Recursively split
+				if (chance.bool())
+					this.chop(x1, y, x2, y2, true);
+				else
+					this.chop(x1, y1, x2, y, true);	
+			}
 		}
 	};
 	this.generate = function () {
-		this.tiles = "";
-		var tile = "floor";
-		for (var y = 0; y < height; y++) {
-			for (var x = 0; x < width; x++) {
-				tile = "floor";
+		//Fill with floor
+		this.tiles = t["floor"].symbol.repeat(width * height);
 
-				if (
-					(x == 0 ||
-						y == 0 ||
-						x == xcol ||
-						y == xrow)
-					&& x != xcol / 2
-					&& y != xrow / 2)
-					tile = "wall";
+		//List exits
+		var exits = [
+			[halfwidth, 0],
+			[halfwidth, yrow],
+			[0, halfheight],
+			[xcol, halfheight]];
+		
+		//Create inner walls
+		this.gen.chop(0, 0, xcol, yrow);
 
-				this.tiles += t[tile].symbol;
-			}
+		//Create outer walls
+		this.gen.wall(0, 0, xcol, 0);
+		this.gen.wall(xcol, 0, xcol, yrow);
+		this.gen.wall(0, yrow, xcol, yrow);
+		this.gen.wall(0, 0, 0, yrow);
+
+		//Actors
+		for (var i = 0; i < randint(0, 6); i++) {
+			var x = randint(1, xcol - 1);
+			var y = randint(1, yrow - 1);
+			this.add(new Actor(chance.pickone(actorCategories["monster"]), x, y));
 		}
 
-		this.gen.hall(0, halfheight, xcol, halfheight);
-		this.gen.hall(halfwidth, 0, halfwidth, xrow);
+		//Chests
+		for (var i = 0; i < randint(0, 2); i++) {
+			var x = randint(1, xcol - 1);
+			var y = randint(1, yrow - 1);
+			this.add(new Prop("chest", x, y, {stash: "num=1-4"}));
+		}
+
+		//Create exits
+		exits.forEach(function (exit) {
+			this.tile(exit[0], exit[1], "floor");
+		}, this);
 	};
-	this.update = function () {
+	this.update = function (noRedraw) {
 		for (var i = this.actors.length - 1; i >= 0; i--) {
 			this.actors[i].update();
 		}
-		this.redraw();
+		if (!noRedraw)
+			this.redraw();
 	};
 	this.tile = function (x, y, val) {
 		if (x >= width || x < 0
@@ -886,7 +1001,7 @@ function Room() {
 		var match;
 
 		//Tiles
-		if (room.tile(x, y).solid)
+		if (this.tile(x, y).solid)
 			return true;
 
 		//Search actors
@@ -915,14 +1030,6 @@ function Room() {
 
 	//Initialize
 	this.generate();
-
-	//@debug Some debuggin stuff
-	for (var i = 0; i < 2; i++)
-		this.add(new Actor("rat",
-			randint(1, xcol - 1),
-			randint(1, xrow - 1), { name: chance.word({ syllables: 2 }) }));
-	this.add(new Prop("chest", 1, 1, { stash: "num=1-5" }));
-	this.add(new Prop("chest", 2, 1, { stash: "num=1,weapon & num=1,food" }));
 }
 
 
