@@ -1,8 +1,14 @@
+_defaults:
+  symbol: "?"
+  category: "misc"
+  stash: null
+  solid: false
+
 chest:
-  sym: "$"
+  symbol: "$"
   stash: "max=10"
   solid: true
 
 carcass:
-  sym: "$"
+  symbol: "$"
   stash: "max=5"

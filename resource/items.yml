@@ -1,3 +1,12 @@
+_defaults:
+  category: misc
+  slot: ""
+  damage: 0
+  weight: 0
+  durability: 0
+  armor: 0
+  heal: 0
+
 knife:
   category: weapon
   slot: hand

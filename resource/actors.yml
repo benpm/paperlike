@@ -1,38 +1,48 @@
-player:
-  sym: "@"
+_defaults:
+  symbol: "?"
+  category: "misc"
   hp: 10
-  movet: none
+  behaviour: "wander"
+  stash: null
+  stamina: 3
+  strength: 1
+  armor: 0
+
+player:
+  symbol: "@"
+  hp: 10
+  behaviour: none
   stash: "max=5"
   stamina: 5
 
 rat:
-  sym: "r"
-  cat: monster
+  symbol: "r"
+  category: monster
   hp: 5
   stash: "num=1,entrails,bone"
 
 goblin:
-  sym: "g"
-  cat: monster
+  symbol: "g"
+  category: monster
   hp: 15
   armor: 2
-  movet: follow
+  behaviour: follow
   stash: "num=2,entrails,bone & num=1,weapon"
 
 troglodyte:
-  sym: "g"
-  cat: monster
+  symbol: "g"
+  category: monster
   hp: 25
   armor: 4
-  movet: follow
+  behaviour: follow
   stamina: 7
   stash: "num=2,entrails,bone & num=1,weapon"
 
 demon:
-  sym: "g"
-  cat: monster
+  symbol: "g"
+  category: monster
   hp: 35
   armor: 5
-  movet: follow
+  behaviour: follow
   stamina: 10
   stash: "num=2,entrails,bone & num=1,weapon"

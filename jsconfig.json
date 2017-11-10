@@ -2,7 +2,7 @@
 	"typeAcquisition": {
 		"enable": true,
 		"include": [
-			"chance", "js-yaml"
+			"chance", "js-yaml", "underscore"
 		]
 	}
 }

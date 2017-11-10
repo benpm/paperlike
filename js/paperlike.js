@@ -185,8 +185,8 @@ function invEquip() {
 	}
 
 	//Redraw / reinspect item
-	invdraw();
 	invent(document.getElementById("select"));
+	invdraw();
 }
 //Equip button is pressed
 function invDelete() {
@@ -197,8 +197,8 @@ function invDelete() {
 	player.stash.remove(item);
 
 	//Redraw / reinspect item
-	invdraw();
 	invent(document.getElementById("select"));
+	invdraw();
 }
 //Equip button is pressed
 function invUse() {
@@ -210,8 +210,8 @@ function invUse() {
 		player.stash.remove(item);
 
 	//Redraw / reinspect item
-	invdraw();
 	invent(document.getElementById("select"));
+	invdraw();
 }
 //Returns selected item
 function invSelected() {
@@ -305,10 +305,9 @@ function reqYaml(path, Type, decrement) {
 	req.onload = function() {
 		console.debug("loaded " + path);
 		var objects = YAML.parse(req.responseText);
-		Object.entries(objects).forEach(function(obj) {
-			new Type(obj[0],
-				obj[1].sym || obj[1],
-				obj[1]);
+		Type.defaults = objects["_defaults"];
+		Object.entries(objects).forEach(function (obj) {
+			new Type(obj[0], obj[1]);
 		}, this);
 		decrement();
 	};
@@ -437,6 +436,7 @@ function begin() {
 var Stage = {
 	scene: "game",
 	setscene: function (scene) {
+		//From...
 		switch (this.scene) {
 			case "game":
 				$room.style.display = "none";
@@ -447,13 +447,18 @@ var Stage = {
 				$bInv.className = "";
 				$exit.style.display = "none";
 				$bInv.style.display = "";
+				if (document.getElementById("select"))
+					document.getElementById("select").id = "";
 				break;
 		}
+
+		//To...
 		this.scene = scene;
 		switch (scene) {
 			case "game":
 				$room.style.display = "";
 				$acts.style.display = "";
+				getActions();
 				break;
 			case "inv":
 				invdraw();
@@ -469,23 +474,16 @@ var Stage = {
 //// Game Classes
 
 //Type of tile
-function Tile(name, symbol, props) {
+function Tile(name, props) {
+	Object.assign(this, _.defaults(props, Tile.defaults));
 	this.name = name;
-	this.symbol = symbol;
-	this.solid = props.solid || false;
-	t[symbol] = t[name] = this;
+	t[this.symbol] = t[name] = this;
 }
 //Type of actor
-function Actype(name, symbol, props) {
+function Actype(name, props) {
+	Object.assign(this, _.defaults(props, Actype.defaults));
 	this.name = name;
-	this.symbol = symbol;
-	this.hp = props.hp || 10;
-	this.stamina = props.stamina || 3;
-	this.strength = props.strength || 1;
-	this.armor = props.armor || 0;
-	this.movet = props.movet || "wander";
-	this.stash = props.stash;
-	this.category = props.cat || "misc";
+
 	actorTypes[name] = this;
 	if (!actorCategories[this.category])
 		actorCategories[this.category] = [];
@@ -540,7 +538,7 @@ function Actor(actype, x, y, props) {
 
 		//Check for flee
 		if (this.hp <= this.maxhp / 3)
-			this.movet = "flee";
+			this.behaviour = "flee";
 
 		//Regain stamina OR hp
 		if (chance.bool({likelihood: 80}))
@@ -553,7 +551,7 @@ function Actor(actype, x, y, props) {
 		this.hp = cap(this.hp, this.maxhp);
 
 		//Movement
-		switch(this.movet) {
+		switch(this.behaviour) {
 			case "wander":
 				this.move(
 					randint(-1, 1),
@@ -659,12 +657,11 @@ function Actor(actype, x, y, props) {
 	};
 }
 //Type of object
-function Proptype(name, symbol, props) {
+function Proptype(name, props) {
+	Object.assign(this, _.defaults(props, Proptype.defaults));
 	this.name = name;
-	this.symbol = symbol;
-	this.solid = Boolean(props.solid);
-	this.category = props.cat || "misc";
-	propTypes[symbol] = propTypes[name] = this;
+
+	propTypes[this.symbol] = propTypes[name] = this;
 	if (!propCategories[this.category])
 		propCategories[this.category] = [];
 	propCategories[this.category].push(this.name);
@@ -778,16 +775,12 @@ function Stash(specify) {
 }
 //Type of item
 function Itemtype(name, props) {
+	Object.assign(this, _.defaults(props, Itemtype.defaults));
+
 	this.name = name;
-	this.slot = props.slot || "";
 	this.equippable = (this.slot != "");
-	this.category = props.category || "misc";
-	this.damage = props.damage || 0;
-	this.weight = props.weight || 0;
 	this.speed = 5 - this.weight;
-	this.durability = props.durability || 0;
-	this.armor = props.armor || 0;
-	this.heal = props.heal || 0;
+
 	itemTypes[name] = this;
 	if (!itemCategories[this.category])
 		itemCategories[this.category] = [];

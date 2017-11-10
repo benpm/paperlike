@@ -1,10 +1,14 @@
+_defaults:
+  symbol: "?"
+  solid: false
+
 floor:
-  sym: "."
+  symbol: "."
 
 wall:
-  sym: "#"
+  symbol: "#"
   solid: true
 
 bound:
-  sym: " "
+  symbol: " "
   solid: true
