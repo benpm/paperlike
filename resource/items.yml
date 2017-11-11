@@ -90,3 +90,6 @@ bone:
 
 stone:
   category: trash
+
+wristwatch:
+  category: trash

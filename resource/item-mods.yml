@@ -1,13 +1,57 @@
+# Weapon Modifiers
+
 rusty:
+  application: weapon
   damage: -1
   durability: -1
 
 fine:
+  application: weapon
   damage: 1
+  durability: 1
 
 enhanced:
+  application: weapon
   damage: 2
   weight: -1
 
 enchanted:
+  application: weapon
   damage: 3
+  weight: -2
+
+well-forged:
+  application: weapon
+  durability: 2
+
+damaged:
+  application: weapon
+  durability: -2
+  damage: -2
+
+spined:
+  application: weapon
+  damage: 3
+
+razor-sharp:
+  application: weapon
+  damage: 4
+
+# Armor Modifers
+
+well-worn:
+  application: armor
+  armor: -1
+
+strengthened:
+  application: armor
+  armor: 1
+
+reinforced:
+  application: armor
+  armor: 2
+
+tempered:
+  application: armor
+  armor: 1
+  weight: -1

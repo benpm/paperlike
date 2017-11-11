@@ -1,6 +1,6 @@
 "use strict";
 
-/* global sprintf, YAML, chance */
+/* global sprintf, YAML, chance, _ */
 
 //Error messages for Kindle Paperwhite
 window.addEventListener("error", function (e) { alert(e.message + ":" + e.lineno); }, true);
@@ -9,6 +9,7 @@ window.addEventListener("error", function (e) { alert(e.message + ":" + e.lineno
 ////Globals
 
 //Sprintf.js
+var _s = s;
 var s = sprintf;
 
 //DOM Elements
@@ -31,6 +32,9 @@ var propCategories = {};
 //Types of items
 var itemTypes = {};
 var itemCategories = {};
+//Types of item modifiers
+var modTypes = {};
+var modCategories = {};
 //Simplifying things
 var int = parseInt;
 
@@ -41,6 +45,18 @@ var int = parseInt;
 function strimplify(str) {
 	return str.replace(/[aeiou]/g, "").replace(/[^A-z \d.,:]/g, "").replace(/,/g, ", ");
 }
+//Adds everything in args to shared members in obj
+function sumMembers(obj) {
+	var args = arguments;
+	for (var i = 1; i < args.length; i++) {
+		Object.keys(args[i]).forEach(function (key) {
+			if (typeof args[i][key] == "number"
+				&& typeof obj[key] == "number") {
+				obj[key] += args[i][key];
+			}
+		});
+	}
+};
 //Redraw inventory boxes
 function invdraw() {
 	var i = 0;
@@ -306,6 +322,7 @@ function reqYaml(path, Type, decrement) {
 		console.debug("loaded " + path);
 		var objects = YAML.parse(req.responseText);
 		Type.defaults = objects["_defaults"];
+		objects = _.omit(objects, "_defaults")
 		Object.entries(objects).forEach(function (obj) {
 			new Type(obj[0], obj[1]);
 		}, this);
@@ -501,8 +518,11 @@ function Actor(actype, x, y, props) {
 	this.maxstamina = this.stamina;
 
 	//Initialize stash
-	if (this.stash)
+	if (this.stash) {
 		this.stash = new Stash(this.stash);
+		this.stash.parent = this;
+		this.stash.autoEquip();
+	}
 
 	//Move action
 	this.move = function (dx, dy) {
@@ -528,7 +548,8 @@ function Actor(actype, x, y, props) {
 	this.update = function () {
 		//Check for death
 		if (this.hp <= 0) {
-			room.add(new Prop("carcass",
+			this.stash.autoUnequip();
+			this.stash.parent = room.add(new Prop("carcass",
 				this.x, this.y,
 				{ stash: this.stash, name: s("%s's carcass", this.name) }));
 			room.remove(this);
@@ -681,6 +702,7 @@ function Stash(specify) {
 	this.max = 5;
 	this.items = [];
 	this.equipped = [];
+	this.parent = null
 
 	//Adds an item to the stash
 	this.add = function (item) {
@@ -697,23 +719,39 @@ function Stash(specify) {
 	};
 	//Toggles equip on item, swaps within slots
 	this.equip = function (item) {
-		if (this.items.indexOf(item) != - 1) {
-			if (item.equipped && this.equipped.indexOf(item) != - 1) {
+		var index = this.equipped.indexOf(item);
+		if (this.items.indexOf(item) != - 1
+			&& item.equippable) {
+			if (item.equipped && index != - 1) {
 				//Unequips item
 				item.equipped = false;
-				this.equipped.splice(this.equipped.indexOf(item), 1);
-				log(s("u unequipped %s", item.name));
+				this.equipped.splice(index, 1);
+				if (this.parent === player)
+					log(s("u unequipped %s", item.name));
 				return true;
-			} else if (!item.equipped && this.equipped.indexOf(item) == - 1) {
+			} else if (!item.equipped && index == - 1) {
 				//Swaps with item currently in slot
 				this.unslot(item.slot);
 				item.equipped = true;
 				this.equipped.push(item);
-				log(s("u equipped %s", item.name));
+				if (this.parent === player)
+					log(s("u equipped %s", item.name));
 				return true;
 			}
 		}
 		return false;
+	};
+	//Tries to equip everything in stash
+	this.autoEquip = function () {
+		this.items.forEach(function (item) {
+			this.equip(item);
+		}, this);
+	};
+	//Unequips everything in stash
+	this.autoUnequip = function () {
+		this.equipped.forEach(function (slot) {
+			this.unslot(slot);
+		}, this);
 	};
 	//Gets item in virtual slot
 	this.slot = function (slot) {
@@ -791,6 +829,12 @@ function Item(itype, props) {
 	this.type = itemTypes[itype].name;
 	Object.assign(this, itemTypes[itype], props);
 	this.equipped = false;
+
+	//Apply a random modifier
+	if (modCategories[this.category])
+		modTypes[chance.pickone(modCategories[this.category])].apply(this);
+	
+	//Use this item in reference to some actor
 	this.use = function (who) {
 		//Return true if item was used, or if no who, when item is usable
 		try {
@@ -813,6 +857,22 @@ function Item(itype, props) {
 			turn();
 		return true;
 	}
+}
+//Item modifier
+function Mod(name, props) {
+	Object.assign(this, props);
+	this.name = name;
+	this.addins = _.omit(this, "application", "name");
+
+	this.apply = function (item) {
+		sumMembers(item, this.addins);
+		item.name = s("%s %s", this.name, item.name);
+	};
+
+	modTypes[name] = this;
+	if (!modCategories[this.application])
+		modCategories[this.application] = [];
+	modCategories[this.application].push(this.name);
 }
 //Individual room
 function Room(x, y) {
@@ -935,14 +995,16 @@ function Room(x, y) {
 		for (var i = 0; i < randint(0, 6); i++) {
 			var x = randint(1, xcol - 1);
 			var y = randint(1, yrow - 1);
-			this.add(new Actor(chance.pickone(actorCategories["monster"]), x, y));
+			if (this.tile(x, y).name == "floor")
+				this.add(new Actor(chance.pickone(actorCategories["monster"]), x, y));
 		}
 
 		//Chests
 		for (var i = 0; i < randint(0, 2); i++) {
 			var x = randint(1, xcol - 1);
 			var y = randint(1, yrow - 1);
-			this.add(new Prop("chest", x, y, {stash: "num=1-4"}));
+			if (this.tile(x, y).name == "floor")
+				this.add(new Prop("chest", x, y, {stash: "num=1-4"}));
 		}
 
 		//Create exits
@@ -1030,5 +1092,6 @@ function Room(x, y) {
 multireq(["resource/tiles.yml",
 	"resource/actors.yml",
 	"resource/props.yml",
-	"resource/items.yml"],
-	[Tile, Actype, Proptype, Itemtype]);
+	"resource/items.yml",
+	"resource/item-mods.yml"],
+	[Tile, Actype, Proptype, Itemtype, Mod]);
