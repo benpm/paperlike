@@ -23,3 +23,5 @@ Flags are the single-word elements of loot phrases. The types of flags are as fo
 ## Sentences
 You can combine loot phrases to make loot sentences. These are merely combinations of phrases to make a more robust set of item options. Examples:
 - `num=1-5,food & num=1,knife` : 1 to 5 food items and one knife
+Phrases can also have their own probability:
+- `num=1-5,food & num=1,p=10,knife` : The knife has a 10% probability to appear in the stash

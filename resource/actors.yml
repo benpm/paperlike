@@ -27,22 +27,22 @@ goblin:
   hp: 15
   armor: 2
   behaviour: follow
-  stash: "num=2,entrails,bone & num=1,weapon"
+  stash: "num=2,entrails,bone & num=1,weapon & num=1,p=50,armor"
 
 troglodyte:
-  symbol: "g"
+  symbol: "T"
   category: monster
   hp: 25
   armor: 4
   behaviour: follow
   stamina: 7
-  stash: "num=2,entrails,bone & num=1,weapon"
+  stash: "num=2,entrails,bone & num=1,weapon & num=1,p=50,armor"
 
 demon:
-  symbol: "g"
+  symbol: "D"
   category: monster
   hp: 35
   armor: 5
   behaviour: follow
   stamina: 10
-  stash: "num=2,entrails,bone & num=1,weapon"
+  stash: "num=2,entrails,bone & num=1,weapon & num=1,p=50,armor"

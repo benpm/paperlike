@@ -18,4 +18,6 @@ Paperlike makes use of the following resources:
 - [Material Icons](https://material.io/icons/)
 - [chance.js](http://chancejs.com/)
 - [sprintf.js](https://www.npmjs.com/package/sprintf-js)
-- [js-yaml](https://github.com/nodeca/js-yaml)
+- [yamljs](https://github.com/jeremyfa/yaml.js)
+- [underscore](http://underscorejs.org/)
+- [underscore.string](https://github.com/epeli/underscore.string)

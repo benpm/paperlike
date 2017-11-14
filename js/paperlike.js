@@ -18,7 +18,7 @@ var $room, $inv, $bInv, $islots,
 	$hp, $st, $ar, $dmg, $turns,
 	$exit, $msg, $itrash, $iuse;
 //Misc. globals
-var width, height, halfheight, halfwidth, xcol,
+var width, height, halfheight, halfwidth, xcol, restartKeys = 5,
 	yrow, player, controls, room, rooms = {}, actions, turns = 0,
 	msgbuffer = [];
 //Types of tiles
@@ -37,6 +37,7 @@ var modTypes = {};
 var modCategories = {};
 //Simplifying things
 var int = parseInt;
+var float = parseFloat;
 
 
 //// Game Functions
@@ -56,6 +57,15 @@ function sumMembers(obj) {
 			}
 		});
 	}
+};
+//Returns object with all falsy members omitted
+function unFalsy(obj) {
+	var newObj = {};
+	_.keys(obj).forEach(function (key) {
+		if (obj[key])
+			newObj[key] = obj[key];	
+	});
+	return newObj;
 };
 //Redraw inventory boxes
 function invdraw() {
@@ -159,6 +169,10 @@ function turn() {
 		$msg.innerText = "...";	
 	msgbuffer.length = 0;
 	turns++;
+	if (player.hp <= 0) {
+		turn();
+		keyinput();
+	}
 }
 //Click on inventory DOM
 function invent(dom) {
@@ -173,7 +187,9 @@ function invent(dom) {
 	//Set inspector
 	var item = player.stash.items[parseInt(dom.getAttribute("index"))];
 	$iname.innerHTML = item ? item.name : "";
-	$idesc.innerHTML = item ? strimplify(JSON.stringify(item)) : "";
+	var desc = _.omit(unFalsy(item),
+		"name", "category", "slot", "equippable", "equipped");
+	$idesc.innerHTML = item ? strimplify(JSON.stringify(desc)) : "";
 	$iequip.src = "img/unchecked.svg";
 	$iequip.className = "invalid";
 	$itrash.className = "invalid";
@@ -185,7 +201,7 @@ function invent(dom) {
 	if (item) {
 		$itrash.className = "";
 	}
-	if (item && item.use()) {
+	if (item && item.use(player, false)) {
 		$iuse.className = "";
 	}
 }
@@ -222,7 +238,7 @@ function invUse() {
 	var item = invSelected();
 	if (!item)
 		return;
-	if (item.use(player))
+	if (item.use(player, true))
 		player.stash.remove(item);
 
 	//Redraw / reinspect item
@@ -267,6 +283,16 @@ function objdir(a, b) {
 }
 //Handles keyboard input
 function keyinput(event) {
+	if (room.actors.indexOf(player) == -1) {
+		if (restartKeys <= 0)
+			begin();
+		else {
+			$msg.innerText = s("press %d keys to continue", restartKeys);
+			restartKeys -= 1;
+		}
+		return;
+	}
+	
 	var key = "";
 
 	if (event.key)
@@ -548,7 +574,7 @@ function Actor(actype, x, y, props) {
 	this.update = function () {
 		//Check for death
 		if (this.hp <= 0) {
-			this.stash.autoUnequip();
+			this.stash.forceUnequip();
 			this.stash.parent = room.add(new Prop("carcass",
 				this.x, this.y,
 				{ stash: this.stash, name: s("%s's carcass", this.name) }));
@@ -748,9 +774,10 @@ function Stash(specify) {
 		}, this);
 	};
 	//Unequips everything in stash
-	this.autoUnequip = function () {
-		this.equipped.forEach(function (slot) {
-			this.unslot(slot);
+	this.forceUnequip = function () {
+		this.equipped.length = 0;
+		this.items.forEach(function (item) {
+			item.equipped = false;
 		}, this);
 	};
 	//Gets item in virtual slot
@@ -772,6 +799,7 @@ function Stash(specify) {
 	//Parses a loot sentence, then phrases, then terms
 	var phrases = specify.split(" & ");
 	phrases.forEach(function (phrase) {
+		var skipPhrase = false;
 		var specs = phrase.split(",");
 		var num = 0,
 			names = [];
@@ -782,6 +810,10 @@ function Stash(specify) {
 
 			//Operate on word
 			switch (tag) {
+				case "p":
+					if (Math.random() < int(val / 100.0))
+						skipPhrase = true;
+					break;	
 				case "max":
 					this.max = int(val);
 					break;
@@ -802,7 +834,7 @@ function Stash(specify) {
 		}, this);
 
 		//Generate stash from phrase
-		if (num > 0) {
+		if (!skipPhrase && num > 0) {
 			if (names.length == 0)
 				names = Object.keys(itemTypes)
 			for (var i = 0; i < num; i++) {
@@ -835,23 +867,21 @@ function Item(itype, props) {
 		modTypes[chance.pickone(modCategories[this.category])].apply(this);
 	
 	//Use this item in reference to some actor
-	this.use = function (who) {
-		//Return true if item was used, or if no who, when item is usable
-		try {
-			switch (this.category) {
-				case "food":
-					if (who.hp == who.maxhp)
-						return false;	
+	this.use = function (who, execute) {
+		//Return true if item was used, only use if execute is true
+		switch (this.category) {
+			case "food":
+				if (who.hp == who.maxhp)
+					return false;	
+				if (execute) {
 					who.hp += this.heal;
 					log(s("u ate %s, +%d HP", this.name, this.heal))
-					break;
-				default:
-					return false;
-			}
-		} catch (error) {
-			if (error instanceof TypeError)
-				return true;
-			else throw error
+				} else {
+					return true;
+				}
+				break;
+			default:
+				return false;
 		}
 		if (who === player)
 			turn();
