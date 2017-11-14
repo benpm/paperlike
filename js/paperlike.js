@@ -19,7 +19,7 @@ var $room, $inv, $bInv, $islots,
 	$exit, $msg, $itrash, $iuse;
 //Misc. globals
 var width, height, halfheight, halfwidth, xcol, restartKeys = 5,
-	yrow, player, controls, room, rooms = {}, actions, turns = 0,
+	yrow, player, controls, gamepad = null, room, rooms = {}, actions, turns = 0,
 	msgbuffer = [];
 //Types of tiles
 var t = {};
@@ -155,8 +155,10 @@ function perfAction() {
 }
 //After player taken turn
 function turn() {
-	if (room.actors.indexOf(player) == -1)
-		return;	
+	if (room.actors.indexOf(player) == -1) {
+		while ($acts.firstChild) { $acts.removeChild($acts.firstChild)}
+		return;
+	}
 	room.update();
 	getActions();
 	$turns.innerText = s("turns: %d", turns);
@@ -283,7 +285,7 @@ function objdir(a, b) {
 }
 //Handles keyboard input
 function keyinput(event) {
-	if (room.actors.indexOf(player) == -1) {
+	if (!event || room.actors.indexOf(player) == -1) {
 		if (restartKeys <= 0)
 			begin();
 		else {
@@ -307,36 +309,77 @@ function keyinput(event) {
 		case "&":
 		case "up":
 		case "ArrowUp":
-			if (player.move(0, -1))
+			if (Stage.scene == "game" && player.move(0, -1))
 				turn();
 			break;
 		case "s":
 		case "(":
 		case "down":
 		case "ArrowDown":
-			if (player.move(0, 1))
+			if (Stage.scene == "game" && player.move(0, 1))
 				turn();
 			break;
 		case "a":
 		case "%":
 		case "left":
 		case "ArrowLeft":
-			if (player.move(-1, 0))
+			if (Stage.scene == "game" && player.move(-1, 0))
 				turn();
 			break;
 		case "d":
 		case "'":
 		case "right":
 		case "ArrowRight":
-			if (player.move(1, 0))
+			if (Stage.scene == "game" && player.move(1, 0))
 				turn();
 			break;
+		case "1":
+			if ($acts.children[0] && $acts.children[0].onmousedown)
+				$acts.children[0].onmousedown();
+			break;
+		case "2":
+			if ($acts.children[1] && $acts.children[1].onmousedown)
+				$acts.children[1].onmousedown();
+			break;
+		case "3":
+			if ($acts.children[2] && $acts.children[2].onmousedown)
+				$acts.children[2].onmousedown();
+			break;
+		case "4":
+			if ($acts.children[3] && $acts.children[3].onmousedown)
+				$acts.children[3].onmousedown();
+			break;
 		case "i":
-			Stage.setscene("inv");
-			break;
 		case "Escape":
-			Stage.setscene("game");
+		case "Tab":
+			if (Stage.scene == "game")
+				Stage.setscene("inv");
+			else if (Stage.scene == "inv")
+				Stage.setscene("game");
 			break;
+	}
+}
+//Gamepad input
+function gamepadInput() {
+	if (gamepad && gamepad.connected) {
+		gamepad.buttons.forEach(function (button, i) {
+			if (button.pressed || button.value) {
+				console.debug(button, i);
+			}
+		});
+		if (gamepad.buttons[14].pressed) keyinput("left");
+		if (gamepad.buttons[15].pressed) keyinput("right");
+		if (gamepad.buttons[12].pressed) keyinput("up");
+		if (gamepad.buttons[13].pressed) keyinput("down");
+		if (gamepad.buttons[0].pressed) keyinput("1");
+		if (gamepad.buttons[1].pressed) keyinput("2");
+		if (gamepad.buttons[2].pressed) keyinput("3");
+		if (gamepad.buttons[3].pressed) keyinput("4");
+		gamepad.axes.forEach(function (value) {
+			if (value > 0.1) {
+				console.debug(value);
+			}
+		});
 	}
 }
 //Parses requested YAML file
@@ -463,6 +506,15 @@ function begin() {
 
 	//Controls
 	document.addEventListener("keydown", keyinput);
+	gamepad = navigator.getGamepads()[0];
+	if (gamepad) {
+		setInterval(gamepadInput, 100);
+	}
+	console.debug(gamepad);
+	window.addEventListener("gamepadconnected", function (e) {
+		gamepad = e.gamepad;
+		setInterval(gamepadInput, 100);
+	});
 
 	//Generate room
 	room = new Room(0, 0);
@@ -849,7 +901,7 @@ function Itemtype(name, props) {
 
 	this.name = name;
 	this.equippable = (this.slot != "");
-	this.speed = 5 - this.weight;
+	this.speed = this.weight ? 5 - this.weight : 0;
 
 	itemTypes[name] = this;
 	if (!itemCategories[this.category])
