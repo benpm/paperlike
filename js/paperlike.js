@@ -209,6 +209,9 @@ function invent(dom) {
 }
 //Equip button is pressed
 function invEquip() {
+	//Invalid
+	if (!$islots.select) return;
+
 	//Select and equip if equippable
 	var item = invSelected();
 	if (!item.equippable)
@@ -224,6 +227,9 @@ function invEquip() {
 }
 //Equip button is pressed
 function invDelete() {
+	//Invalid
+	if (!$islots.select) return;
+
 	//Select and equip if equippable
 	var item = invSelected();
 	if (item.equipped)
@@ -236,6 +242,9 @@ function invDelete() {
 }
 //Equip button is pressed
 function invUse() {
+	//Invalid
+	if (!$islots.select) return;
+
 	//Select and equip if equippable
 	var item = invSelected();
 	if (!item)
@@ -249,7 +258,7 @@ function invUse() {
 }
 //Returns selected item
 function invSelected() {
-	return player.stash.items[parseInt(document.getElementById("select").getAttribute("index"))];
+	return player.stash.items[parseInt($islots.select.getAttribute("index"))];
 }
 //Returns random integer
 function randint(a, b) {
@@ -262,6 +271,10 @@ function nint(string, n, sep) {
 //Caps a number
 function cap(n, max) {
 	return Math.min(n, max);
+}
+//Non-negative modulo
+function nmod(x, m) {
+	return (x % m + m) % m;
 }
 //Replaces character in string
 function repChar(str, i, chr) {
@@ -289,7 +302,7 @@ function keyinput(event) {
 		if (restartKeys <= 0)
 			begin();
 		else {
-			$msg.innerText = s("press %d keys to continue", restartKeys);
+			$msg.innerText = s("u died; press %d keys to continue", restartKeys);
 			restartKeys -= 1;
 		}
 		return;
@@ -305,12 +318,32 @@ function keyinput(event) {
 		key = event;
 
 	switch (key) {
+		case " ":
+		case "Enter":
+		case "Return":
+			if (Stage.scene == "inv") {
+				invUse();
+				invEquip();
+			}
+			break;
+		case "Delete":
+		case "Backspace":
+			if (Stage.scene == "inv")
+				invDelete();
+			break;	
 		case "w":
 		case "&":
 		case "up":
 		case "ArrowUp":
 			if (Stage.scene == "game" && player.move(0, -1))
 				turn();
+			if (Stage.scene == "inv") {
+				var index = 0;
+				if ($islots.select)
+					index = int($islots.select.getAttribute("index")) - 5;
+				index = nmod(index, 20);
+				invent($islots[index])
+			}
 			break;
 		case "s":
 		case "(":
@@ -318,6 +351,13 @@ function keyinput(event) {
 		case "ArrowDown":
 			if (Stage.scene == "game" && player.move(0, 1))
 				turn();
+			if (Stage.scene == "inv") {
+				var index = 0;
+				if ($islots.select)
+					index = int($islots.select.getAttribute("index")) + 5;
+				index = nmod(index, 20);
+				invent($islots[index])
+			}
 			break;
 		case "a":
 		case "%":
@@ -325,6 +365,13 @@ function keyinput(event) {
 		case "ArrowLeft":
 			if (Stage.scene == "game" && player.move(-1, 0))
 				turn();
+			if (Stage.scene == "inv") {
+				var index = 0;
+				if ($islots.select)
+					index = int($islots.select.getAttribute("index")) - 1;
+				index = nmod(index, 20);
+				invent($islots[index])
+			}
 			break;
 		case "d":
 		case "'":
@@ -332,21 +379,32 @@ function keyinput(event) {
 		case "ArrowRight":
 			if (Stage.scene == "game" && player.move(1, 0))
 				turn();
+			if (Stage.scene == "inv") {
+				var index = 0;
+				if ($islots.select)
+					index = int($islots.select.getAttribute("index")) + 1;
+				index = nmod(index, 20);
+				invent($islots[index])
+			}
 			break;
 		case "1":
-			if ($acts.children[0] && $acts.children[0].onmousedown)
+			if (Stage.scene == "game" && 
+				$acts.children[0] && $acts.children[0].onmousedown)
 				$acts.children[0].onmousedown();
 			break;
 		case "2":
-			if ($acts.children[1] && $acts.children[1].onmousedown)
+			if (Stage.scene == "game" && 
+				$acts.children[1] && $acts.children[1].onmousedown)
 				$acts.children[1].onmousedown();
 			break;
 		case "3":
-			if ($acts.children[2] && $acts.children[2].onmousedown)
+			if (Stage.scene == "game" && 
+				$acts.children[2] && $acts.children[2].onmousedown)
 				$acts.children[2].onmousedown();
 			break;
 		case "4":
-			if ($acts.children[3] && $acts.children[3].onmousedown)
+			if (Stage.scene == "game" && 
+				$acts.children[3] && $acts.children[3].onmousedown)
 				$acts.children[3].onmousedown();
 			break;
 		case "i":
@@ -414,8 +472,10 @@ function multireq(paths, handlers) {
 	var checker = function () {
 		if (toload > 0)
 			setTimeout(checker, 150);
-		else
+		else {
+			setup();
 			begin();
+		}
 	}
 	for (var i = 0; i < paths.length; i++) {
 		reqYaml(paths[i], handlers[i], end);
@@ -467,6 +527,22 @@ function runtests() {
 //Begin
 function begin() {
 
+	//Player setup
+	player = new Actor("player",
+		Math.floor(width / 2), Math.floor(height / 2), {name: "u"});
+	player.stash.add(new Item("sword"));
+	player.stash.equip(player.stash.items[0]);
+
+	//Generate room
+	room = new Room(0, 0);
+	room.actors.push(player);
+
+	//First update
+	turn();
+}
+//Setup (one-time)
+function setup() {
+
 	//DOM Association
 	$room = document.getElementById("room");
 	$inv = document.getElementById("inv");
@@ -498,12 +574,6 @@ function begin() {
 	halfwidth = xcol / 2;
 	halfheight = yrow / 2;
 
-	//Player setup
-	player = new Actor("player",
-		Math.floor(width / 2), Math.floor(height / 2), {name: "u"});
-	player.stash.add(new Item("sword"));
-	player.stash.equip(player.stash.items[0]);
-
 	//Controls
 	document.addEventListener("keydown", keyinput);
 	gamepad = navigator.getGamepads()[0];
@@ -515,13 +585,6 @@ function begin() {
 		gamepad = e.gamepad;
 		setInterval(gamepadInput, 100);
 	});
-
-	//Generate room
-	room = new Room(0, 0);
-	room.actors.push(player);
-
-	//First update
-	turn();
 }
 
 
