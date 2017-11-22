@@ -1,57 +1,69 @@
 # Weapon Modifiers
 
 rusty:
+  rarity: common
   application: weapon
   damage: -1
   durability: -1
 
 fine:
+  rarity: common
   application: weapon
   damage: 1
   durability: 1
 
 enhanced:
+  rarity: rare
   application: weapon
   damage: 2
   weight: -1
 
 enchanted:
+  rarity: rare
   application: weapon
   damage: 3
   weight: -2
 
 well-forged:
+  rarity: rare
   application: weapon
   durability: 2
 
 damaged:
+  rarity: common
   application: weapon
   durability: -2
   damage: -2
 
 spined:
+  rarity: vrare
   application: weapon
   damage: 3
 
 razor-sharp:
+  rarity: mythical
   application: weapon
   damage: 4
 
 # Armor Modifers
 
 well-worn:
+  rarity: common
   application: armor
   armor: -1
 
 strengthened:
+  rarity: rare
   application: armor
   armor: 1
 
 reinforced:
+  rarity: vrare
   application: armor
   armor: 2
 
 tempered:
+  rarity: vrare
   application: armor
   armor: 1
   weight: -1

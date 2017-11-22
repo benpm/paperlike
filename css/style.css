@@ -24,6 +24,7 @@ body {
 
 * {
 	user-select: none;
+	-webkit-user-select: none;
 	cursor: default;
 }
 
@@ -63,7 +64,7 @@ body {
 }
 #room {
 	font-family: tile;
-	font-size: 5vw;
+	font-size: 4vw;
 	line-height: 1em;
 }
 
@@ -130,7 +131,7 @@ body {
 }
 /* Icon columns */
 #A {
-	width: 325px;
+	width: 330px;
 }
 #inv #inspect h3 {
 	margin: 0;

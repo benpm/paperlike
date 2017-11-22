@@ -2,10 +2,12 @@ _defaults:
   category: misc
   slot: ""
   damage: 0
+  _damage_weapon_range: [1, 99]
   weight: 0
   durability: 0
   armor: 0
   heal: 0
+  rarity: common
 
 knife:
   category: weapon
@@ -28,12 +30,29 @@ longsword:
   weight: 3
   durability: 1
 
+scythe:
+  category: weapon
+  slot: hand
+  rarity: rare
+  damage: 3
+  weight: 1
+  durability: 1
+
 battleaxe:
   category: weapon
   slot: hand
+  rarity: rare
   damage: 4
   weight: 4
   durability: 1
+
+flaming staff:
+  category: weapon
+  slot: hand
+  rarity: vrare
+  damage: 7
+  weight: 2
+  durability: 2
 
 whip:
   category: weapon
@@ -41,6 +60,13 @@ whip:
   damage: 1
   weight: 0
   durability: 1
+
+battle hammer:
+  category: weapon
+  slot: hand
+  damage: 4
+  weight: 5
+  durability: 3
 
 helmet:
   category: armor
@@ -56,12 +82,27 @@ chainmail:
   weight: 3
   durability: 2
 
+scalemail:
+  category: armor
+  slot: chest
+  rarity: rare
+  armor: 4
+  weight: 4
+  durability: 2
+
 boots:
   category: armor
   slot: feet
   armor: 1
   weight: 1
   durability: 2
+
+shoes:
+  category: armor
+  slot: feet
+  armor: 0
+  weight: 1
+  durability: 1
 
 gauntlet:
   category: armor
@@ -80,6 +121,12 @@ bread:
 
 fine meal:
   category: food
+  rarity: rare
+  heal: 5
+
+sweetbreads:
+  category: food
+  rarity: rare
   heal: 5
 
 entrails:
@@ -92,4 +139,5 @@ stone:
   category: trash
 
 wristwatch:
+  rarity: vrare
   category: trash

@@ -11,6 +11,11 @@ window.addEventListener("error", function (e) { alert(e.message + ":" + e.lineno
 //Sprintf.js
 var _s = s;
 var s = sprintf;
+_.mixin({
+	omitFromPrefix: function (obj, char) {
+		return _.omit(obj, _.filter(_.keys(obj), function (t) { return t[0] == char }))
+	}
+});
 
 //DOM Elements
 var $room, $inv, $bInv, $islots,
@@ -20,7 +25,7 @@ var $room, $inv, $bInv, $islots,
 //Misc. globals
 var width, height, halfheight, halfwidth, xcol, restartKeys = 5,
 	yrow, player, controls, gamepad = null, room, rooms = {}, actions, turns = 0,
-	msgbuffer = [];
+	msgbuffer = [], lastbuttons = new Array(16), buttons = new Array(16);
 //Types of tiles
 var t = {};
 //Types of actors
@@ -272,6 +277,14 @@ function nint(string, n, sep) {
 function cap(n, max) {
 	return Math.min(n, max);
 }
+//Clamps a number
+function clamp(n, min, max) {
+	return Math.max(Math.min(n, max), min);
+}
+//Uses a generic bounding function f(n, ...args)
+function bounded(func, n) {
+	
+}
 //Non-negative modulo
 function nmod(x, m) {
 	return (x % m + m) % m;
@@ -422,22 +435,27 @@ function gamepadInput() {
 	if (gamepad && gamepad.connected) {
 		gamepad.buttons.forEach(function (button, i) {
 			if (button.pressed || button.value) {
-				console.debug(button, i);
+				if (!lastbuttons[i])
+					buttons[i] = true;
+				else
+					buttons[i] = false;	
+				//console.debug(button, i);
+			} else {
+				buttons[i] = false;
 			}
+			lastbuttons[i] = button.pressed;
 		});
-		if (gamepad.buttons[14].pressed) keyinput("left");
-		if (gamepad.buttons[15].pressed) keyinput("right");
-		if (gamepad.buttons[12].pressed) keyinput("up");
-		if (gamepad.buttons[13].pressed) keyinput("down");
-		if (gamepad.buttons[0].pressed) keyinput("1");
-		if (gamepad.buttons[1].pressed) keyinput("2");
-		if (gamepad.buttons[2].pressed) keyinput("3");
-		if (gamepad.buttons[3].pressed) keyinput("4");
-		gamepad.axes.forEach(function (value) {
-			if (value > 0.1) {
-				console.debug(value);
-			}
-		});
+		if (buttons[14]) keyinput("left");
+		if (buttons[15]) keyinput("right");
+		if (buttons[12]) keyinput("up");
+		if (buttons[13]) keyinput("down");
+		if (buttons[0] && Stage.scene == "game") keyinput("1");
+		if (buttons[0] && Stage.scene == "inv") keyinput(" ");
+		if (buttons[1] && Stage.scene == "game") keyinput("2");
+		if (buttons[1] && Stage.scene == "inv") keyinput("Delete");
+		if (buttons[2]) keyinput("3");
+		if (buttons[3]) keyinput("4");
+		if (buttons[9]) keyinput("Escape");
 	}
 }
 //Parses requested YAML file
@@ -449,9 +467,13 @@ function reqYaml(path, Type, decrement) {
 		console.debug("loaded " + path);
 		var objects = YAML.parse(req.responseText);
 		Type.defaults = objects["_defaults"];
+		Type.defaults = _.omitFromPrefix(Type.defaults, "_");
 		objects = _.omit(objects, "_defaults")
 		Object.entries(objects).forEach(function (obj) {
-			new Type(obj[0], obj[1]);
+			//Remove underscore-prepended properties
+			new Type(
+				obj[0],
+				_.omitFromPrefix(obj[1], "_"));
 		}, this);
 		decrement();
 	};
@@ -534,6 +556,7 @@ function begin() {
 	player.stash.equip(player.stash.items[0]);
 
 	//Generate room
+	rooms.length = 0;
 	room = new Room(0, 0);
 	room.actors.push(player);
 
@@ -578,12 +601,13 @@ function setup() {
 	document.addEventListener("keydown", keyinput);
 	gamepad = navigator.getGamepads()[0];
 	if (gamepad) {
-		setInterval(gamepadInput, 100);
+		setInterval(gamepadInput, 50);
 	}
 	console.debug(gamepad);
 	window.addEventListener("gamepadconnected", function (e) {
 		gamepad = e.gamepad;
-		setInterval(gamepadInput, 100);
+		setInterval(gamepadInput, 50);
+		console.debug(gamepad);
 	});
 }
 
@@ -847,8 +871,11 @@ function Stash(specify) {
 
 	//Adds an item to the stash
 	this.add = function (item) {
-		if (this.items.length < this.max)
+		if (this.items.length < this.max) {
 			this.items.push(item);
+			return item;
+		} else
+			return null;	
 	};
 	//Removes an item based on criterion
 	this.remove = function (item) {
@@ -941,7 +968,7 @@ function Stash(specify) {
 					break;
 				default:
 					if (itemCategories[tag])
-						names = names.concat(itemCategories[tag]);
+						names = _.union(names, itemCategories[tag]);
 					else
 						names.push(tag);
 					break;
@@ -950,10 +977,18 @@ function Stash(specify) {
 
 		//Generate stash from phrase
 		if (!skipPhrase && num > 0) {
+			//Defaults to common items
 			if (names.length == 0)
-				names = Object.keys(itemTypes)
+				names = itemCategories["common"];
 			for (var i = 0; i < num; i++) {
-				this.add(new Item(chance.pickone(names)));
+				var item = this.add(new Item(chance.pickone(names)));
+
+				//Apply a random modifier from rarity and modifers to new item
+				if (chance.bool() && modCategories[item.category] && modCategories[item.rarity]) {
+					var mods = _.intersection(modCategories[item.category], modCategories[item.rarity]);
+					if (mods.length > 0)
+						modTypes[chance.pickone(mods)].apply(item);
+				}
 			}
 		}
 	}, this);
@@ -970,16 +1005,15 @@ function Itemtype(name, props) {
 	if (!itemCategories[this.category])
 		itemCategories[this.category] = [];
 	itemCategories[this.category].push(this.name);
+	if (!itemCategories[this.rarity])
+		itemCategories[this.rarity] = [];
+	itemCategories[this.rarity].push(this.name);
 }
 //Individual item
 function Item(itype, props) {
 	this.type = itemTypes[itype].name;
 	Object.assign(this, itemTypes[itype], props);
 	this.equipped = false;
-
-	//Apply a random modifier
-	if (modCategories[this.category])
-		modTypes[chance.pickone(modCategories[this.category])].apply(this);
 	
 	//Use this item in reference to some actor
 	this.use = function (who, execute) {
@@ -1018,6 +1052,9 @@ function Mod(name, props) {
 	if (!modCategories[this.application])
 		modCategories[this.application] = [];
 	modCategories[this.application].push(this.name);
+	if (!modCategories[this.rarity])
+		modCategories[this.rarity] = [];
+	modCategories[this.rarity].push(this.name);
 }
 //Individual room
 function Room(x, y) {
@@ -1227,6 +1264,11 @@ function Room(x, y) {
 			this.props.push(obj);
 		return obj;
 	};
+	//Returns everything at position x, y
+	this.at = function (x, y, filter) {
+		//@todo: add filter functionality
+		//@todo: functionality
+	}
 
 	//Initialize
 	this.generate();
