@@ -3,6 +3,11 @@
 	src: url("../font/tileset.ttf");
 }
 
+@font-face {
+	font-family: "icons";
+	src: url("../font/icons.ttf");
+}
+
 @keyframes blink {
 	from {
 		opacity: 0;
@@ -34,28 +39,37 @@ body {
 }
 
 #stats {
-	position: absolute;
+	position: fixed;
 	width: 100%;
-	height: 16px;
-	top: 6px;
-	left: 16px;
-	font-size: .8em;
+	bottom: 24px;
+	left: 24px;
+	font-size: 1.5em;
+	color: black;
 }
 
 #stats div {
 	padding: 0;
 	margin: 0 2.5% 0 0;
-	text-align: center;
-	color: white;
-	display: inline;
+	text-align: left;
+	color: black;
+	display: block;
 }
+
+#stats img {
+	height: 36px;
+	padding: 4px;
+	border-radius: 8px;
+	vertical-align: middle;
+	margin-right: 8px;
+}
+
 /* All sections */
 #room, #inv {
 	position: absolute;
 	text-align: center;
 	font-size: 25px;
 	left: 0;
-	top: 16px;
+	top: 0;
 	/*outline: solid 3px gray;*/
 	/*border-radius: 6px;*/
 	margin: 32px 0 0 0;
@@ -68,16 +82,18 @@ body {
 	line-height: 1em;
 }
 
+/* Messages Box */
 #msg {
 	position: absolute;
 	text-align: center;
-	top: 60%;
+	bottom: 60%;
 	left: 0;
 	width: 100%;
 	font-size: 1.5em;
 	background: black;
 	color: white;
 	padding: .5em 0 .5em 0;
+	display: none;
 }
 
 /* Inventory section */
@@ -110,48 +126,47 @@ body {
 	color: white;
 	cursor: default;
 }
-#inv #inspect {
+#inspect {
 	margin: 0;
 	padding: 0;
 	width: 100%;
 	height: 20%;
-	outline: solid 2px gray;
+	/* outline: solid 2px gray; */
 	line-height: 6px;
-	display: flex;
+	display: block;
 }
-#inv #inspect div {
-	display: inline-block;
+#inspect div {
 	height: 100%;
 	margin: 0;
 	padding: 0;
 }
-#inv #inspect #B {
-	width: 50%;
-	overflow: hidden;
+#inspect #B {
+	width: 100%;
 }
 /* Icon columns */
-#A {
-	width: 330px;
+#inspect #A {
+	width: 100%;
+	text-align: center;
 }
-#inv #inspect h3 {
+#inspect h3 {
 	margin: 0;
 	padding: 1em 0 0 0;
 	line-height: 0;
 }
-#inv #inspect p {
+#inspect p {
 	font-size: 13px;
 	word-wrap: break-word;
     line-height: 1em;
 }
 
-#inv #inspect #A img {
+#inspect #A img {
 	height: 100%;
 	float: left;
 }
 
 #bevel {
 	position: absolute;
-	top: 16px;
+	top: 0;
 	left: 0;
 	border: solid 16px black;
 	border-radius: 24px;
@@ -190,7 +205,7 @@ area:hover {
 
 #buttons2 {
 	position: absolute;
-    left: 20px;
+    right: 20px;
     bottom: 16px;
 }
 
@@ -198,39 +213,68 @@ img:hover {
 	cursor: pointer;
 }
 
+
+/* Actions Bar */
 #actions {
 	position: absolute;
-	left: 10%;
-	top: 45%;
-	width: 70%;
-	height: 25%;
-	max-width: 300px;
+	left: 0;
+	top: 55%;
+	width: 100%;
+	height: 60px;
+	text-align: center;
 }
-
+#actions span {
+	font-family: "tile";
+	color: white;
+	background: black;
+	border-radius: 100%;
+	padding: 12px;
+	font-size: 36px;
+	margin: 0 4px 0 4px;
+	cursor: pointer;
+}
 #actions p {
 	outline: 2px solid gray;
 	padding: 0 0 0 6px;
 }
-
 #actions p:hover {
 	cursor: pointer;
+}
+
+/* Mouseover tooltip */
+#tooltip {
+	position: absolute;
+	z-index: 1;
+	background: black;
+	color: white;
+	border-radius: 4px;
+	padding: 4px;
+	border: solid white 2px;
+	font-family: Consolas, monospace;
+	font-size: 16px;
+	top: 0px;
+	left: 50%;
 }
 
 
 .disabled {
 	opacity: 0.2;
 }
+.hide {
+	visibility: hidden;
+	opacity: 0;
+}
 .invalid:hover {
 	cursor: default;
 }
 
 /* SMALLER SCREENS */
-@media screen and (min-width: 600px) {
-	#room {
-		font-size: 1.25em;
+@media screen and (max-width: 600px) {
+	#actions {
+		top: 60%;
 	}
-	#buttons {
-		transform: scale(.75, .75);
+	#stats img {
+		height: 24px;
 	}
 }
 
@@ -248,7 +292,10 @@ img:hover {
 		font-size: 1.5em;
 	}
 	#actions {
-		top: 48px;
-		left: 48px;
+		top: unset;
+		bottom: 64px;
+	}
+	#actions span {
+		font-size: 75px;
 	}
 }

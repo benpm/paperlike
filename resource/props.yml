@@ -10,5 +10,5 @@ chest:
   solid: true
 
 carcass:
-  symbol: "$"
+  symbol: "C"
   stash: "max=5"

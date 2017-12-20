@@ -8,20 +8,32 @@ window.addEventListener("error", function (e) { alert(e.message + ":" + e.lineno
 
 ////Globals
 
-//Sprintf.js
+//Lib
 var _s = s;
 var s = sprintf;
 _.mixin({
+	//Omits all members beginning with prefix char
 	omitFromPrefix: function (obj, char) {
-		return _.omit(obj, _.filter(_.keys(obj), function (t) { return t[0] == char }))
+		return _.omit(obj, _.filter(_.keys(obj), function (t) { return t[0] == char }));
+	},
+
+	//Only returns members with prefix char
+	grabFromPrefix: function (obj, char) {
+		return _.pick(obj, _.filter(_.keys(obj), function (t) { return t[0] == char }));
 	}
 });
+var boundFunc = {
+	range: clamp,
+	min: Math.max,
+	max: Math.min
+};
 
 //DOM Elements
 var $room, $inv, $bInv, $islots,
 	$iname, $idesc, $iequip, $acts,
 	$hp, $st, $ar, $dmg, $turns,
-	$exit, $msg, $itrash, $iuse;
+	$exit, $msg, $itrash, $iuse,
+	$pad, $tooltip;
 //Misc. globals
 var width, height, halfheight, halfwidth, xcol, restartKeys = 5,
 	yrow, player, controls, gamepad = null, room, rooms = {}, actions, turns = 0,
@@ -94,15 +106,30 @@ function invdraw() {
 		i ++;
 	}, this);
 }
+//Tooltip manipulation
+function doTooltip(event) {
+	this.appendChild($tooltip);
+	$tooltip.style.display = "";
+	$tooltip.innerText = this.getAttribute("tip") || "???";
+}
+//Eject tooltip
+function unTooltip(event) {
+	$tooltip.style.display = "none";
+}
 //Set manual styles
 function updateStyle() {
 	var bevel = document.getElementById("bevel");
 	bevel.style.width = (window.innerWidth - 32) + "px";
-	bevel.style.height = (window.innerHeight - 48) + "px";
+	bevel.style.height = (window.innerHeight - 32) + "px";
 }
 //Find possible actions
 function getActions() {
 	actions = [];
+
+	//Inventory
+	actions.push({ name: "Open Inventory", symbol: "1", override: function () {
+		Stage.setscene('inv');
+	}});
 
 	//Actors
 	room.actors.forEach(function(actor) {
@@ -119,7 +146,7 @@ function getActions() {
 	}, this);
 
 	//Update actions list in DOM
-	var extras = "", type, valid;
+	var extras = "", type, valid, amount = 0;
 	$acts.innerHTML = "";
 	actions.forEach(function(target) {
 		//Assign extra info string
@@ -136,20 +163,38 @@ function getActions() {
 			|| (type == "Prop" && player.stash.items.length >= player.stash.max)
 			|| (type == "Prop" && target.stash.items.length == 0))
 			valid = false;
+		
+		//Amount
+		amount = 100;
+		switch (type) {
+			case "Actor":
+				amount = Math.round((target.hp / target.maxhp) * 100);
+				break;
+			case "Prop":
+				amount = Math.round((target.stash.items.length / target.stash.max) * 100);
+				break;
+		}
 
 		//Write in DOM
-		$acts.innerHTML += s("<p class='%s'> %s %s %s %s </p>",
+		$acts.innerHTML += s("<span style='background: linear-gradient(to bottom, gray 0%%, gray %1$d%%, black %1$d%%, black 100%%)' class='%2$s' tip='%4$s'>%3$s</span>",
+			100 - amount,	
+			valid ? "" : "invalid",
+			target.symbol || "?",
+			target.name);
+		/* $acts.innerHTML += s("<p class='%s'> %s %s %s %s </p>",
 			valid ? "" : "invalid",
 			type == "Prop" || player.stamina > 1 ? "->" : "X",
 			type == "Actor" ? "attack " :
 			type == "Prop" ? "loot " : "interact ",
-			target.name, extras);
+			target.name, extras); */
 	}, this);
 
 	//Assign interaction function
 	for (var i = 0; i < $acts.children.length; i++) {
 		if ($acts.children[i].className != "invalid")
 			$acts.children[i].onmousedown = perfAction;
+		$acts.children[i].onmouseenter = doTooltip;
+		$acts.children[i].onmouseout = unTooltip;
 		$acts.children[i].setAttribute("index", i.toString());
 	}
 }
@@ -160,6 +205,7 @@ function perfAction() {
 }
 //After player taken turn
 function turn() {
+	//Check for player death
 	if (room.actors.indexOf(player) == -1) {
 		while ($acts.firstChild) { $acts.removeChild($acts.firstChild)}
 		return;
@@ -167,10 +213,10 @@ function turn() {
 	room.update();
 	getActions();
 	$turns.innerText = s("turns: %d", turns);
-	$hp.innerText = s("HP: %d/%d", player.hp, player.maxhp);
-	$st.innerText = s("ST: %d/%d", player.stamina, player.maxstamina);
-	$ar.innerText = s("AR: %d", player.armor());
-	$dmg.innerText = s("DMG: %d", player.damage());
+	$hp.innerHTML = s("<img src='img/hp.svg'>%d/%d", player.hp, player.maxhp);
+	$st.innerHTML = s("<img src='img/stamina.svg'>%d/%d", player.stamina, player.maxstamina);
+	$ar.innerHTML = s("<img src='img/armor.svg'>%d", player.armor());
+	$dmg.innerHTML = s("<img src='img/damage.svg'>%d", player.damage());
 	$msg.innerText = msgbuffer.join(", then ");
 	if (!$msg.innerText)
 		$msg.innerText = "...";	
@@ -281,9 +327,14 @@ function cap(n, max) {
 function clamp(n, min, max) {
 	return Math.max(Math.min(n, max), min);
 }
-//Uses a generic bounding function f(n, ...args)
-function bounded(func, n) {
-	
+//Uses a generic bounding function f(n, ...vals)
+function bounded(func, n, vals) {
+	switch (vals.length) {
+		case 1:
+			return func(n, vals[0]);
+		case 2:
+			return func(n, vals[0], vals[1]);	
+	}
 }
 //Non-negative modulo
 function nmod(x, m) {
@@ -463,18 +514,35 @@ function reqYaml(path, Type, decrement) {
 	var req = new XMLHttpRequest();
 	req.open("GET", path, true);
 	req.send();
+	req.onerror = console.error;
 	req.onload = function() {
 		console.debug("loaded " + path);
-		var objects = YAML.parse(req.responseText);
-		Type.defaults = objects["_defaults"];
-		Type.defaults = _.omitFromPrefix(Type.defaults, "_");
-		objects = _.omit(objects, "_defaults")
-		Object.entries(objects).forEach(function (obj) {
-			//Remove underscore-prepended properties
-			new Type(
-				obj[0],
-				_.omitFromPrefix(obj[1], "_"));
+		var entries = YAML.parse(req.responseText);
+
+		//Defaults
+		Type.defaults = _.omitFromPrefix(entries["_defaults"], "_");
+
+		//Specification of ranges
+		Type.ranges = {};
+		var rawRanges = _.grabFromPrefix(entries["_defaults"], "_");
+		Object.entries(rawRanges).forEach(function (range) {
+			var parts = range[0].slice(1).split("_");
+			if (!Type.ranges[parts[1]])
+				Type.ranges[parts[1]] = {};
+			Type.ranges[parts[1]][parts[0]] = {
+				vals: range[1],
+				func: boundFunc[parts[2]]
+			};
+		});
+
+		//Specification of types
+		entries = _.omit(entries, "_defaults");
+		Object.entries(entries).forEach(function (entry) {
+			//Also, remove underscore-prepended properties
+			new Type(entry[0], _.omitFromPrefix(entry[1], "_"));
 		}, this);
+
+		//Show that this file has been loaded and parsed
 		decrement();
 	};
 }
@@ -548,6 +616,7 @@ function runtests() {
 }
 //Begin
 function begin() {
+	console.log("Begin");
 
 	//Player setup
 	player = new Actor("player",
@@ -556,7 +625,7 @@ function begin() {
 	player.stash.equip(player.stash.items[0]);
 
 	//Generate room
-	rooms.length = 0;
+	rooms = {};
 	room = new Room(0, 0);
 	room.actors.push(player);
 
@@ -584,6 +653,8 @@ function setup() {
 	$turns = document.getElementById("turns");
 	$exit = document.getElementById("exit");
 	$msg = document.getElementById("msg");
+	$pad = document.getElementById("pad");
+	$tooltip = document.getElementById("tooltip");
 
 	//Style setup
 	window.addEventListener("resize", updateStyle);
@@ -623,10 +694,11 @@ var Stage = {
 			case "game":
 				$room.style.display = "none";
 				$acts.style.display = "none";
+				$pad.style.display = "none";
 				break;
 			case "inv":
 				$inv.style.display = "none";
-				$bInv.className = "";
+				//$bInv.classList.remove("");
 				$exit.style.display = "none";
 				$bInv.style.display = "";
 				if (document.getElementById("select"))
@@ -640,6 +712,7 @@ var Stage = {
 			case "game":
 				$room.style.display = "";
 				$acts.style.display = "";
+				$pad.style.display = "";
 				getActions();
 				break;
 			case "inv":
@@ -775,6 +848,13 @@ function Actor(actype, x, y, props) {
 	};
 	//Interaction with actor who
 	this.interact = function (who) {
+		//Overridden function call
+		if (who.override) {
+			who.override();
+			return;
+		}
+
+		//Interact with actor
 		if (who.constructor.name == "Actor") {
 			var staminaCost = this.weight();
 
@@ -834,6 +914,8 @@ function Actor(actype, x, y, props) {
 			armor += this.stash.slot("legs").armor;
 		if (this.stash.slot("feet"))
 			armor += this.stash.slot("feet").armor;
+		if (this.stash.slot("wrist"))
+			armor += this.stash.slot("wrist").armor;
 		return Math.max(Math.ceil(armor * (multiplier || 1)), 0);
 	};
 	//Calculates total carrying weight
@@ -992,6 +1074,11 @@ function Stash(specify) {
 			}
 		}
 	}, this);
+
+	//Set max from procedure
+	if (this.items.length > 0) {
+		this.max = this.items.length;
+	}
 }
 //Type of item
 function Itemtype(name, props) {
@@ -1036,6 +1123,19 @@ function Item(itype, props) {
 			turn();
 		return true;
 	}
+
+	//For preventing properties from escaping their ranges
+	this.bounds = function () {
+		Object.keys(this).forEach(function (property) {
+			var ranges = Itemtype.ranges[this.category];
+			if (ranges && ranges[property]) {
+				this[property] = bounded(
+					ranges[property].func,
+					this[property],
+					ranges[property].vals);
+			}
+		}, this);
+	}
 }
 //Item modifier
 function Mod(name, props) {
@@ -1046,6 +1146,7 @@ function Mod(name, props) {
 	this.apply = function (item) {
 		sumMembers(item, this.addins);
 		item.name = s("%s %s", this.name, item.name);
+		item.bounds();
 	};
 
 	modTypes[name] = this;

@@ -6,6 +6,7 @@ _defaults:
   weight: 0
   durability: 0
   armor: 0
+  _armor_armor_min: [1]
   heal: 0
   rarity: common
 
@@ -100,7 +101,7 @@ boots:
 shoes:
   category: armor
   slot: feet
-  armor: 0
+  armor: 1
   weight: 1
   durability: 1
 

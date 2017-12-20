@@ -1,1 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><title>wall</title><rect width="64" height="64"/></svg>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 21.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 300 300" style="enable-background:new 0 0 300 300;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:none;stroke:#000000;stroke-width:30;stroke-linecap:square;}
+</style>
+<g>
+	<path d="M315,315H-15V-15h330V315z M210,285h75v-45h-75V285z M15,285h165v-45H15V285z M210,210h75v-45H105v45H210z M15,210h60v-45
+		H15V210z M240,135h45V90h-45V135z M105,135h105V90H15v45H105z M240,60h45V15H150v45H240z M15,60h105V15H15V60z"/>
+</g>
+<path class="st0" d="M0,0"/>
+</svg>

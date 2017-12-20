@@ -2,7 +2,7 @@
 <html>
 <head>
 	<title>[Paperlike]</title>
-	<link rel="icon" href="img/favicon.png">
+	<link rel="icon" href="icon.png">
 	<link rel="stylesheet" type="text/css" href="css/style.css">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 	<meta name="MobileOptimized" content="640">
@@ -16,7 +16,7 @@
 <body>
 	<div id="stats">
 		<div id="turns"></div>
-		<div id="hp"></div>
+		<div id="hp"><img src="img/armor.svg"></div>
 		<div id="st"></div>
 		<div id="ar"></div>
 		<div id="dmg"></div>
@@ -77,10 +77,11 @@
 		<img id="pad" src="img/buttons.svg" usemap="#padmap">
 	</div>
 	<div id="buttons2">
-		<img id="invbutton" src="img/stash.svg" onmousedown="Stage.setscene('inv');">
+		<img id="invbutton" class="hide" src="img/stash.svg" onmousedown="Stage.setscene('inv');">
 		<img id="exit" style="display: none" src="img/exit.svg" onmousedown="Stage.setscene('game');">
 	</div>
 	<div id="actions"></div>
+	<div id="tooltip" style="display: none;">Tooltip</div>
 </body>
 <script type="text/javascript" src="js/paperlike.js"></script>
 </html>
