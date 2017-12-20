@@ -1,6 +1,6 @@
-# Paperlike
+![](https://i.imgur.com/B100KCC.jpg)
 
-![](https://i.imgur.com/xQscIK4.gif)
+![](https://i.imgur.com/fkxIePa.png)
 
 ## About
 A small roguelike made for the kindle experimental browser. Should also work on most devices, including phones, tablets and PCs. You can find the [trello here](https://trello.com/b/D1EUAPSu/paperlike).

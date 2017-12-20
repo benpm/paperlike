@@ -131,7 +131,8 @@ sweetbreads:
   heal: 5
 
 entrails:
-  category: trash
+  category: food
+  heal: 1
 
 bone:
   category: trash

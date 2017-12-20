@@ -33,7 +33,7 @@ var $room, $inv, $bInv, $islots,
 	$iname, $idesc, $iequip, $acts,
 	$hp, $st, $ar, $dmg, $turns,
 	$exit, $msg, $itrash, $iuse,
-	$pad, $tooltip;
+	$pad, $tooltip, $death, $stats;
 //Misc. globals
 var width, height, halfheight, halfwidth, xcol, restartKeys = 5,
 	yrow, player, controls, gamepad = null, room, rooms = {}, actions, turns = 0,
@@ -215,16 +215,19 @@ function turn() {
 	$turns.innerText = s("turns: %d", turns);
 	$hp.innerHTML = s("<img src='img/hp.svg'>%d/%d", player.hp, player.maxhp);
 	$st.innerHTML = s("<img src='img/stamina.svg'>%d/%d", player.stamina, player.maxstamina);
-	$ar.innerHTML = s("<img src='img/armor.svg'>%d", player.armor());
+	$ar.innerHTML = s("<img src='img/armor.svg'>%d", player.defense());
 	$dmg.innerHTML = s("<img src='img/damage.svg'>%d", player.damage());
 	$msg.innerText = msgbuffer.join(", then ");
 	if (!$msg.innerText)
 		$msg.innerText = "...";	
 	msgbuffer.length = 0;
 	turns++;
+
+	//Immediate player death check
 	if (player.hp <= 0) {
 		turn();
 		keyinput();
+		playerDeath();
 	}
 }
 //Click on inventory DOM
@@ -294,18 +297,19 @@ function invDelete() {
 //Equip button is pressed
 function invUse() {
 	//Invalid
-	if (!$islots.select) return;
+	if (!$islots.select) return false;
 
 	//Select and equip if equippable
 	var item = invSelected();
 	if (!item)
-		return;
-	if (item.use(player, true))
+		return false;
+	if (item.use(player, true)) {
+		//Remove, then redraw / reinspect item
 		player.stash.remove(item);
-
-	//Redraw / reinspect item
-	invent(document.getElementById("select"));
-	invdraw();
+		invent(document.getElementById("select"));
+		invdraw();
+		return true;
+	}
 }
 //Returns selected item
 function invSelected() {
@@ -363,12 +367,6 @@ function objdir(a, b) {
 //Handles keyboard input
 function keyinput(event) {
 	if (!event || room.actors.indexOf(player) == -1) {
-		if (restartKeys <= 0)
-			begin();
-		else {
-			$msg.innerText = s("u died; press %d keys to continue", restartKeys);
-			restartKeys -= 1;
-		}
 		return;
 	}
 	
@@ -386,8 +384,8 @@ function keyinput(event) {
 		case "Enter":
 		case "Return":
 			if (Stage.scene == "inv") {
-				invUse();
-				invEquip();
+				if (!invUse())
+					invEquip();
 			}
 			break;
 		case "Delete":
@@ -604,15 +602,22 @@ function transRoom(x, y) {
 	if (player.y == yrow) player.y = 0;
 	else if (player.y == 0) player.y = yrow;
 }
+//Death handler
+function playerDeath() {
+	Stage.setscene("dead");
+	player = undefined;
+}
 //Run some compatiblity tests
 function runtests() {
 	alert(s("[RUNTESTS]\n\
-		room.checksolid is % s\n\
-		array.find is % s\n\
-		matchPos is % s",
+		room.checksolid is %s\n\
+		array.find is %s\n\
+		matchPos is %s\n\
+		Object.entries is %s",
 		typeof room.checksolid,
 		typeof Array.prototype.find,
-		typeof matchPos));
+		typeof matchPos,
+		typeof Object.entries));
 }
 //Begin
 function begin() {
@@ -628,6 +633,10 @@ function begin() {
 	rooms = {};
 	room = new Room(0, 0);
 	room.actors.push(player);
+
+	//Post-death restart sequence
+	if (Stage.scene == "dead")
+		Stage.setscene("game");	
 
 	//First update
 	turn();
@@ -655,6 +664,8 @@ function setup() {
 	$msg = document.getElementById("msg");
 	$pad = document.getElementById("pad");
 	$tooltip = document.getElementById("tooltip");
+	$death = document.getElementById("death");
+	$stats = document.getElementById("stats");
 
 	//Style setup
 	window.addEventListener("resize", updateStyle);
@@ -695,6 +706,7 @@ var Stage = {
 				$room.style.display = "none";
 				$acts.style.display = "none";
 				$pad.style.display = "none";
+				$stats.style.display = "none";
 				break;
 			case "inv":
 				$inv.style.display = "none";
@@ -704,6 +716,9 @@ var Stage = {
 				if (document.getElementById("select"))
 					document.getElementById("select").id = "";
 				break;
+			case "dead":
+				$death.style.display = "none";
+				break;	
 		}
 
 		//To...
@@ -713,6 +728,7 @@ var Stage = {
 				$room.style.display = "";
 				$acts.style.display = "";
 				$pad.style.display = "";
+				$stats.style.display = "";
 				getActions();
 				break;
 			case "inv":
@@ -720,6 +736,10 @@ var Stage = {
 				$inv.style.display = "";
 				$bInv.style.display = "none";
 				$exit.style.display = "";
+				$stats.style.display = "";
+				break;
+			case "dead":
+				$death.style.display = "";	
 				break;
 		}
 	}
@@ -880,7 +900,7 @@ function Actor(actype, x, y, props) {
 	};
 	//Calculates total damage this actor can inflict
 	this.damage = function (multiplier) {
-		var dmg = 0;
+		var dmg = this.strength;
 		if (this.stash.slot("hand"))
 			dmg += this.stash.slot("hand").damage;
 		return Math.max(Math.ceil(dmg * (multiplier || 1)), 1);
@@ -896,7 +916,7 @@ function Actor(actype, x, y, props) {
 	};
 	//Calculates and applies incoming damage
 	this.defend = function (dmg) {
-		var total = Math.max(0, dmg - this.armor());
+		var total = Math.max(0, dmg - this.defense());
 		this.hp -= total;
 		if (total == 0 && dmg > 0)
 			log(s("%s defended", this.name))
@@ -904,7 +924,7 @@ function Actor(actype, x, y, props) {
 		return total;
 	};
 	//Calculates total armor an actor has
-	this.armor = function (multiplier) {
+	this.defense = function (multiplier) {
 		var armor = 0;
 		if (this.stash.slot("chest"))
 			armor += this.stash.slot("chest").armor;

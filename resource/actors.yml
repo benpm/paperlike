@@ -27,6 +27,7 @@ goblin:
   hp: 15
   armor: 2
   behaviour: follow
+  strength: 2
   stash: "num=2,entrails,bone & num=1,weapon & num=1,p=50,armor"
 
 troglodyte:
@@ -36,6 +37,7 @@ troglodyte:
   armor: 4
   behaviour: follow
   stamina: 7
+  strength: 3
   stash: "num=2,entrails,bone & num=1,weapon & num=1,p=50,armor"
 
 demon:
@@ -45,4 +47,6 @@ demon:
   armor: 5
   behaviour: follow
   stamina: 10
+  strength: 4
+  armor: 2
   stash: "num=2,entrails,bone & num=1,weapon & num=1,p=50,armor"
