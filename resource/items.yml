@@ -7,7 +7,6 @@ _defaults:
   durability: 0
   armor: 0
   _armor_armor_min: [1]
-  heal: 0
   rarity: common
 
 knife:
@@ -113,26 +112,30 @@ gauntlet:
   durability: 1
 
 apple:
-  category: food
-  heal: 2
+  category: consumable
+  hp: 2
+  stamina: 1
 
 bread:
-  category: food
-  heal: 3
+  category: consumable
+  hp: 3
+  stamina: 1
 
 fine meal:
-  category: food
+  category: consumable
   rarity: rare
-  heal: 5
+  hp: 5
+  stamina: 2
 
 sweetbreads:
-  category: food
+  category: consumable
   rarity: rare
-  heal: 5
+  hp: 5
+  stamina: 3
 
 entrails:
-  category: food
-  heal: 1
+  category: consumable
+  hp: 1
 
 bone:
   category: trash

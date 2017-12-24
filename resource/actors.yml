@@ -1,6 +1,7 @@
 _defaults:
   symbol: "?"
   category: "misc"
+  rarity: common
   hp: 10
   behaviour: "wander"
   stash: null
@@ -12,6 +13,7 @@ player:
   symbol: "@"
   hp: 10
   behaviour: none
+  rarity: none
   stash: "max=5"
   stamina: 5
 
@@ -24,29 +26,29 @@ rat:
 goblin:
   symbol: "g"
   category: monster
-  hp: 15
-  armor: 2
+  hp: 8
   behaviour: follow
-  strength: 2
-  stash: "num=2,entrails,bone & num=1,weapon & num=1,p=50,armor"
+  stash: "num=2,entrails,bone & num=1,p=50,weapon & num=1,p=50,armor"
 
 troglodyte:
   symbol: "T"
   category: monster
-  hp: 25
-  armor: 4
+  rarity: rare
+  hp: 15
+  armor: 2
   behaviour: follow
   stamina: 7
-  strength: 3
-  stash: "num=2,entrails,bone & num=1,weapon & num=1,p=50,armor"
+  strength: 2
+  stash: "num=2,entrails,bone & num=1,p=50,weapon & num=1,p=50,armor"
 
 demon:
   symbol: "D"
   category: monster
+  rarity: vrare
   hp: 35
   armor: 5
   behaviour: follow
   stamina: 10
-  strength: 4
+  strength: 3
   armor: 2
-  stash: "num=2,entrails,bone & num=1,weapon & num=1,p=50,armor"
+  stash: "num=2,entrails,bone & num=1,p=50,weapon & num=1,p=50,armor"

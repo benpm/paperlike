@@ -17,8 +17,9 @@ Tags are the elements of a loot phrase that have specific values or ranges.
 ## Flags
 Flags are the single-word elements of loot phrases. The types of flags are as follows:
 - Rarity (essentially a rough value index): `common, rare, vrare, mythical`
-- Category: `generic, food, weapon, armor, potion, charm`
-- Specific Item: `knife, longsword, apple, etc.`
+- Exact Rarity (only this rarity, none below): `_common, _rare, _vrare, _mythical`
+- Category: `misc, consumable, weapon, armor...`
+- Specific Item: `knife, longsword, apple...`
 
 ## Sentences
 You can combine loot phrases to make loot sentences. These are merely combinations of phrases to make a more robust set of item options. Examples:

@@ -60,6 +60,12 @@ img {
 	vertical-align: middle;
 	margin-right: 8px;
 }
+#stats span {
+	background: black;
+	color: white;
+	padding: 2px;
+	border-radius: 4px;
+}
 
 /* Room itself */
 #room, #inv {
@@ -123,6 +129,9 @@ img {
 	background: black;
 	color: white;
 	cursor: default;
+}
+#inv #cells td.invalid {
+	outline: none;
 }
 
 /* Inspection section */

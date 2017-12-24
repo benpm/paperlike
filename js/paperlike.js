@@ -27,31 +27,51 @@ var boundFunc = {
 	min: Math.max,
 	max: Math.min
 };
+var difficulties = [
+	"common",
+	"common",
+	"rare",
+	"vrare",
+	"mythical"
+];
+var rarities = {
+	common: 0,
+	rare: 1,
+	vrare: 2,
+	mythical: 3
+};
 
 //DOM Elements
 var $room, $inv, $bInv, $islots,
 	$iname, $idesc, $iequip, $acts,
-	$hp, $st, $ar, $dmg, $turns,
+	$hp, $st, $ar, $dmg,
 	$exit, $msg, $itrash, $iuse,
 	$pad, $tooltip, $death, $stats;
+
 //Misc. globals
 var width, height, halfheight, halfwidth, xcol, restartKeys = 5,
 	yrow, player, controls, gamepad = null, room, rooms = {}, actions, turns = 0,
 	msgbuffer = [], lastbuttons = new Array(16), buttons = new Array(16);
+
 //Types of tiles
 var t = {};
+
 //Types of actors
 var actorTypes = {};
 var actorCategories = {};
+
 //Types of props
 var propTypes = {};
 var propCategories = {};
+
 //Types of items
 var itemTypes = {};
 var itemCategories = {};
+
 //Types of item modifiers
 var modTypes = {};
 var modCategories = {};
+
 //Simplifying things
 var int = parseInt;
 var float = parseFloat;
@@ -75,6 +95,21 @@ function sumMembers(obj) {
 		});
 	}
 };
+//Pushes item into list or creates list
+function insertion(obj, key, value) {
+	if (!obj[key])
+		obj[key] = [];
+	obj[key].push(value);
+}
+//Inserts into rarity and specific rarity categories
+function rarityInsert(collection, rarity, value) {
+	insertion(collection, "_" + rarity, value);
+	Object.keys(rarities).forEach(function (r) {
+		if (rarities[r] >= rarities[rarity]) {
+			insertion(collection, r, value);
+		}
+	}, this);
+}
 //Returns object with all falsy members omitted
 function unFalsy(obj) {
 	var newObj = {};
@@ -88,7 +123,7 @@ function unFalsy(obj) {
 function invdraw() {
 	var i = 0;
 	for (i = 0; i < 20; i++) {
-		$islots[i].innerText = "/";
+		$islots[i].innerText = " ";
 		$islots[i].className = "invalid";
 	}
 	for (i = 0; i < player.stash.max; i++) {
@@ -205,16 +240,28 @@ function perfAction() {
 }
 //After player taken turn
 function turn() {
+
 	//Check for player death
 	if (room.actors.indexOf(player) == -1) {
 		while ($acts.firstChild) { $acts.removeChild($acts.firstChild)}
 		return;
 	}
+
+	//Update room
 	room.update();
+
+	//List actions
 	getActions();
-	$turns.innerText = s("turns: %d", turns);
-	$hp.innerHTML = s("<img src='img/hp.svg'>%d/%d", player.hp, player.maxhp);
-	$st.innerHTML = s("<img src='img/stamina.svg'>%d/%d", player.stamina, player.maxstamina);
+
+	//Update stats
+	player.d_hp = player.hp - player.d_hp;
+	player.d_stamina = player.stamina - player.d_stamina;
+	$hp.innerHTML = s("<img src='img/hp.svg'>%d/%d %s", player.hp, player.maxhp,
+		player.d_hp ? s("<span>%s%d</span>",
+			player.d_hp > 0 ? "+" : "", player.d_hp) : "");
+	$st.innerHTML = s("<img src='img/stamina.svg'>%d/%d %s", player.stamina, player.maxstamina,
+		player.d_stamina ? s("<span>%s%d</span>",
+			player.d_stamina > 0 ? "+" : "", player.d_stamina) : "");
 	$ar.innerHTML = s("<img src='img/armor.svg'>%d", player.defense());
 	$dmg.innerHTML = s("<img src='img/damage.svg'>%d", player.damage());
 	$msg.innerText = msgbuffer.join(", then ");
@@ -223,6 +270,10 @@ function turn() {
 	msgbuffer.length = 0;
 	turns++;
 
+	//Post-update
+	player.d_hp = player.hp;
+	player.d_stamina = player.stamina;
+
 	//Immediate player death check
 	if (player.hp <= 0) {
 		turn();
@@ -230,7 +281,7 @@ function turn() {
 		playerDeath();
 	}
 }
-//Click on inventory DOM
+//Inventory DOM selection handler
 function invent(dom) {
 	//Reset other selected
 	for (var i = 0; i < $islots.length; i++) {
@@ -659,7 +710,6 @@ function setup() {
 	$st = document.getElementById("st");
 	$ar = document.getElementById("ar");
 	$dmg = document.getElementById("dmg");
-	$turns = document.getElementById("turns");
 	$exit = document.getElementById("exit");
 	$msg = document.getElementById("msg");
 	$pad = document.getElementById("pad");
@@ -760,9 +810,8 @@ function Actype(name, props) {
 	this.name = name;
 
 	actorTypes[name] = this;
-	if (!actorCategories[this.category])
-		actorCategories[this.category] = [];
-	actorCategories[this.category].push(this.name);
+	insertion(actorCategories, this.category, this.name);
+	insertion(actorCategories, this.rarity, this.name);
 }
 //Individual actor
 function Actor(actype, x, y, props) {
@@ -804,6 +853,7 @@ function Actor(actype, x, y, props) {
 	};
 	//Update actor
 	this.update = function () {
+
 		//Check for death
 		if (this.hp <= 0) {
 			this.stash.forceUnequip();
@@ -816,14 +866,15 @@ function Actor(actype, x, y, props) {
 		}
 
 		//Check for flee
-		if (this.hp <= this.maxhp / 3)
+		if (this.hp <= this.maxhp / 5)
 			this.behaviour = "flee";
 
 		//Regain stamina OR hp
-		if (chance.bool({likelihood: 80}))
+		if (this.stamina < this.maxstamina) {
 			this.stamina += this.strength;
-		else
+		} else if (this.hp < this.maxhp) {
 			this.hp += this.strength;
+		}
 
 		//Cap some properties
 		this.stamina = cap(this.stamina, this.maxstamina);
@@ -859,6 +910,7 @@ function Actor(actype, x, y, props) {
 						randint(-1, 1),
 						randint(-1, 1));
 				this.aggro = false;
+				this.stamina -= 1;
 				break;
 		}
 		if (this !== player) {
@@ -885,12 +937,6 @@ function Actor(actype, x, y, props) {
 
 				//Stamina cost
 				this.stamina -= staminaCost;
-
-				//Journal
-				if (dmgGiven > 0 && dmgTaken > 0)
-					log(s("%s/%s -%d HP", this.name, who.name, dmgTaken));
-				else if (dmgGiven == 0)
-					log(s("%s missed", this.name));
 			}
 		} else {
 			if (who.stash.items.length) {
@@ -950,9 +996,7 @@ function Proptype(name, props) {
 	this.name = name;
 
 	propTypes[this.symbol] = propTypes[name] = this;
-	if (!propCategories[this.category])
-		propCategories[this.category] = [];
-	propCategories[this.category].push(this.name);
+	insertion(propCategories, this.category, this.name);
 }
 //Individual actor
 function Prop(ptype, x, y, props) {
@@ -1109,12 +1153,8 @@ function Itemtype(name, props) {
 	this.speed = this.weight ? 5 - this.weight : 0;
 
 	itemTypes[name] = this;
-	if (!itemCategories[this.category])
-		itemCategories[this.category] = [];
-	itemCategories[this.category].push(this.name);
-	if (!itemCategories[this.rarity])
-		itemCategories[this.rarity] = [];
-	itemCategories[this.rarity].push(this.name);
+	insertion(itemCategories, this.category, this.name);
+	rarityInsert(itemCategories, this.rarity, this.name);
 }
 //Individual item
 function Item(itype, props) {
@@ -1126,12 +1166,12 @@ function Item(itype, props) {
 	this.use = function (who, execute) {
 		//Return true if item was used, only use if execute is true
 		switch (this.category) {
-			case "food":
+			case "consumable":
 				if (who.hp == who.maxhp)
 					return false;	
 				if (execute) {
-					who.hp += this.heal;
-					log(s("u ate %s, +%d HP", this.name, this.heal))
+					who.hp += this.hp || 0;
+					who.stamina += this.stamina || 0;
 				} else {
 					return true;
 				}
@@ -1187,6 +1227,7 @@ function Room(x, y) {
 	this.x = x;
 	this.y = y;
 	this.lastVisit = turns;
+	this.difficulty = cap(dist(x, y, 0, 0), 4);
 
 	rooms[[x, y]] = this;
 	var self = this;
@@ -1275,6 +1316,13 @@ function Room(x, y) {
 		}
 	};
 	this.generate = function () {
+		//Generator subparameters
+		var monsters = this.difficulty * 2;
+		var rarity = difficulties[this.difficulty];
+		var chests = randint(0, 3);
+		if (this.difficulty == 0)
+			chests = 2;	
+
 		//Fill with floor
 		this.tiles = t["floor"].symbol.repeat(width * height);
 
@@ -1295,19 +1343,19 @@ function Room(x, y) {
 		this.gen.wall(0, 0, 0, yrow);
 
 		//Actors
-		for (var i = 0; i < randint(0, 6); i++) {
+		for (var i = 0; i < monsters; i++) {
 			var x = randint(1, xcol - 1);
 			var y = randint(1, yrow - 1);
 			if (this.tile(x, y).name == "floor")
-				this.add(new Actor(chance.pickone(actorCategories["monster"]), x, y));
+				this.add(new Actor(chance.pickone(actorCategories[rarity]), x, y));
 		}
 
 		//Chests
-		for (var i = 0; i < randint(0, 2); i++) {
+		for (var i = 0; i < chests; i++) {
 			var x = randint(1, xcol - 1);
 			var y = randint(1, yrow - 1);
 			if (this.tile(x, y).name == "floor")
-				this.add(new Prop("chest", x, y, {stash: "num=1-4"}));
+				this.add(new Prop("chest", x, y, {stash: s("num=1-4,_%s", rarity)}));
 		}
 
 		//Create exits
