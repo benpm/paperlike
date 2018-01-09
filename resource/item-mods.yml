@@ -1,10 +1,17 @@
 # Weapon Modifiers
 
+broken:
+  rarity: none
+  application: all
+  damage: -99
+  armor: -99
+
 rusty:
   rarity: common
   application: weapon
   damage: -1
   durability: -1
+  wear: 50
 
 fine:
   rarity: common
@@ -34,6 +41,7 @@ damaged:
   application: weapon
   durability: -2
   damage: -2
+  wear: 75
 
 spined:
   rarity: vrare

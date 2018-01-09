@@ -49,7 +49,7 @@ var $room, $inv, $bInv, $islots,
 	$pad, $tooltip, $death, $stats;
 
 //Misc. globals
-var width, height, halfheight, halfwidth, xcol, restartKeys = 5,
+var isKindle = false, info, width, height, halfheight, halfwidth, xcol, restartKeys = 5,
 	yrow, player, controls, gamepad = null, room, rooms = {}, actions, turns = 0,
 	msgbuffer = [], lastbuttons = new Array(16), buttons = new Array(16);
 
@@ -75,6 +75,14 @@ var modCategories = {};
 //Simplifying things
 var int = parseInt;
 var float = parseFloat;
+
+//Kindle detection
+if (innerWidth == 758 && innerHeight == 945)
+	isKindle = true;
+if (isKindle)
+	info = window.alert;
+else
+	info = console.info;	
 
 
 //// Game Functions
@@ -145,7 +153,7 @@ function invdraw() {
 function doTooltip(event) {
 	this.appendChild($tooltip);
 	$tooltip.style.display = "";
-	$tooltip.innerText = this.getAttribute("tip") || "???";
+	$tooltip.innerText = _s.titleize(this.getAttribute("tip")) || "???";
 }
 //Eject tooltip
 function unTooltip(event) {
@@ -301,6 +309,8 @@ function invent(dom) {
 	$iequip.className = "invalid";
 	$itrash.className = "invalid";
 	$iuse.className = "invalid";
+
+	//Action buttons
 	if (item && item.equippable) {
 		$iequip.src = item.equipped ? "img/checked.svg" : "img/unchecked.svg";
 		$iequip.className = "";
@@ -335,8 +345,12 @@ function invDelete() {
 	//Invalid
 	if (!$islots.select) return;
 
-	//Select and equip if equippable
+	//Check for unequippable
 	var item = invSelected();
+	if (item.equipped && !item.canUnequip(player))
+		return;
+
+	//Select and equip if equippable
 	if (item.equipped)
 		player.stash.equip(item);
 	player.stash.remove(item);
@@ -398,6 +412,26 @@ function nmod(x, m) {
 //Replaces character in string
 function repChar(str, i, chr) {
 	return str.substr(0, i) + chr + str.substr(i + 1);
+}
+//Line of sight utilities
+function look(x, y, distance) {
+	var increment = 1 / (distance * 3);
+	for (var ang = 0; ang < 2 * Math.PI; ang += increment) {
+		ray(x, y, ang, distance);
+	}
+}
+function ray(x, y, angle, steps) {
+	if (!room.inbounds(Math.round(x), Math.round(y)))
+		return false;	
+	room.fog(Math.round(x), Math.round(y), false);
+	if (steps <= 0)
+		return false;
+	var tile = room.tile(Math.round(x), Math.round(y));
+	if (!tile.transparent)
+		return true;
+	return ray(
+		x + Math.cos(angle),
+		y + Math.sin(angle), angle, steps - 1);
 }
 //Returns chess distance
 function dist(x1, y1, x2, y2) {
@@ -564,7 +598,7 @@ function reqYaml(path, Type, decrement) {
 	req.open("GET", path, true);
 	req.send();
 	req.onerror = console.error;
-	req.onload = function() {
+	req.onload = function () {
 		console.debug("loaded " + path);
 		var entries = YAML.parse(req.responseText);
 
@@ -664,11 +698,14 @@ function runtests() {
 		room.checksolid is %s\n\
 		array.find is %s\n\
 		matchPos is %s\n\
-		Object.entries is %s",
+		Object.entries is %s\n\
+		isKindle = %s\n\
+		size: %s x %s",
 		typeof room.checksolid,
 		typeof Array.prototype.find,
 		typeof matchPos,
-		typeof Object.entries));
+		typeof Object.entries,
+		isKindle, innerWidth, innerHeight));
 }
 //Begin
 function begin() {
@@ -880,6 +917,9 @@ function Actor(actype, x, y, props) {
 		this.stamina = cap(this.stamina, this.maxstamina);
 		this.hp = cap(this.hp, this.maxhp);
 
+		//Stash update
+		this.stash.update();
+
 		//Movement
 		switch(this.behaviour) {
 			case "wander":
@@ -957,6 +997,10 @@ function Actor(actype, x, y, props) {
 		if (chance.bool({ likelihood: 10 }))
 			return 0;
 
+		//Item wear
+		if (this.stash.slot("hand"))
+			this.stash.slot("hand").wear += 1;
+
 		//Calculate damage
 		return this.damage(multiplier) + randint(-1, 1);
 	};
@@ -964,6 +1008,19 @@ function Actor(actype, x, y, props) {
 	this.defend = function (dmg) {
 		var total = Math.max(0, dmg - this.defense());
 		this.hp -= total;
+
+		//Armor wear
+		if (this.stash.slot("chest"))
+			this.stash.slot("chest").wear += 1;
+		else if (this.stash.slot("head"))
+			this.stash.slot("head").wear += 1;
+		else if (this.stash.slot("legs"))
+			this.stash.slot("legs").wear += 1;
+		else if (this.stash.slot("feet"))
+			this.stash.slot("feet").wear += 1;
+		else if (this.stash.slot("wrist"))
+			this.stash.slot("wrist").wear += 1;
+
 		if (total == 0 && dmg > 0)
 			log(s("%s defended", this.name))
 		this.aggro = true;
@@ -1036,10 +1093,11 @@ function Stash(specify) {
 		var index = this.equipped.indexOf(item);
 		if (this.items.indexOf(item) != - 1
 			&& item.equippable) {
-			if (item.equipped && index != - 1) {
+			if (item.equipped && index != - 1 && item.canUnequip(this.parent)) {
 				//Unequips item
 				item.equipped = false;
 				this.equipped.splice(index, 1);
+				item.onUnequip(this.parent);
 				if (this.parent === player)
 					log(s("u unequipped %s", item.name));
 				return true;
@@ -1048,6 +1106,7 @@ function Stash(specify) {
 				this.unslot(item.slot);
 				item.equipped = true;
 				this.equipped.push(item);
+				item.onEquip(this.parent);
 				if (this.parent === player)
 					log(s("u equipped %s", item.name));
 				return true;
@@ -1081,6 +1140,19 @@ function Stash(specify) {
 		this.equipped.forEach(function(item) {
 			if (item.slot == slot)
 				this.equip(item);
+		}, this);
+	};
+	//Update items
+	this.update = function () {
+		//Broken item chances
+		this.equipped.forEach(function (item) {
+			if (Math.random() < item.wear / (item.durability * 250)) {
+				//Break, unequip
+				modTypes.broken.apply(item);
+				if (item.equipped)
+					this.equip(item);
+				item.equippable = false;
+			}
 		}, this);
 	};
 
@@ -1167,11 +1239,10 @@ function Item(itype, props) {
 		//Return true if item was used, only use if execute is true
 		switch (this.category) {
 			case "consumable":
-				if (who.hp == who.maxhp)
-					return false;	
+				if (this.hp && who.hp == who.maxhp)
+					return false;
 				if (execute) {
-					who.hp += this.hp || 0;
-					who.stamina += this.stamina || 0;
+					sumMembers(who, this);
 				} else {
 					return true;
 				}
@@ -1182,7 +1253,42 @@ function Item(itype, props) {
 		if (who === player)
 			turn();
 		return true;
+	};
+
+	//Special action upon being equipped
+	this.onEquip = function (actor) {
+		if (actor) {
+			if (this.category == "gear") {
+				//Increase personal storage
+				if (this.storage)
+					actor.stash.max = this.storage;
+			}
+		}
+	};
+
+	//Determines whether this item can be unequipped
+	this.canUnequip = function (actor) {
+		if (actor) {
+			if (this.category == "gear") {
+				//Wearable storage needs to be cleared
+				if (this.storage && actor.stash.items.length <= 5)
+					return true;
+			}
+		} else
+			return true;
+		return true;
 	}
+
+	//Special action upon being un-equipped
+	this.onUnequip = function (actor) {
+		if (actor) {
+			if (this.category == "gear") {
+				//Reset personal storage space
+				if (this.storage)
+					actor.stash.max = 5;
+			}
+		}
+	};
 
 	//For preventing properties from escaping their ranges
 	this.bounds = function () {
@@ -1195,7 +1301,7 @@ function Item(itype, props) {
 					ranges[property].vals);
 			}
 		}, this);
-	}
+	};
 }
 //Item modifier
 function Mod(name, props) {
@@ -1222,12 +1328,13 @@ function Room(x, y) {
 	//Definitions
 	this.tiles = "";
 	this.data = Array(width * height);
+	this.fogtiles = Array(width * height);
 	this.actors = [];
 	this.props = [];
 	this.x = x;
 	this.y = y;
 	this.lastVisit = turns;
-	this.difficulty = cap(dist(x, y, 0, 0), 4);
+	this.difficulty = cap(dist(x, y, 0, 0), _.size(rarities) - 1);
 
 	rooms[[x, y]] = this;
 	var self = this;
@@ -1278,7 +1385,13 @@ function Room(x, y) {
 		chop: function (x1, y1, x2, y2, dir) {
 			//Prevents placing walls on exits
 			if (x2 - x1 < 6 || y2 - y1 < 6)
-				return;	
+				return;
+			
+			//Decoration
+			if (chance.bool({ likelihood: 10 })) {
+				//self.tile(x1 + 1, y1 + 1, "plant");
+				//self.tile(x2 - 1, y2 - 1, "plant");
+			}
 			
 			if (dir) {
 				//Vertical segment
@@ -1289,7 +1402,7 @@ function Room(x, y) {
 
 				//Door
 				if (chance.bool({ likelihood: 75 }))
-					self.tile(x, randint(y1 + 1, y2 - 1), "floor");
+					self.tile(x, randint(y1 + 1, y2 - 1), "door");
 				
 				//Recursively split
 				if (chance.bool())
@@ -1305,7 +1418,7 @@ function Room(x, y) {
 
 				//Door
 				if (chance.bool({ likelihood: 75 }))
-					self.tile(randint(x1 + 1, x2 - 1), y, "floor");
+					self.tile(randint(x1 + 1, x2 - 1), y, "door");
 				
 				//Recursively split
 				if (chance.bool())
@@ -1342,6 +1455,25 @@ function Room(x, y) {
 		this.gen.wall(0, yrow, xcol, yrow);
 		this.gen.wall(0, 0, 0, yrow);
 
+		//Decoration
+		var sides = 0;
+		for (var y = 0; y < height; y++) {
+			for (var x = 0; x < width; x++) {
+				if (this.tile(x, y).name == "floor") {
+					sides = 0;
+					if (this.tile(x, y + 1).name == "wall") sides += 1;
+					if (this.tile(x, y - 1).name == "wall") sides += 1;
+					if (this.tile(x + 1, y).name == "wall") sides += 1;
+					if (this.tile(x - 1, y).name == "wall") sides += 1;
+
+					if (sides == 2)
+						this.tile(x, y, "plant");
+				}
+			}
+			if (chance.bool({ likelihood: 15 }))
+				break;	
+		}
+
 		//Actors
 		for (var i = 0; i < monsters; i++) {
 			var x = randint(1, xcol - 1);
@@ -1360,7 +1492,7 @@ function Room(x, y) {
 
 		//Create exits
 		exits.forEach(function (exit) {
-			this.tile(exit[0], exit[1], "floor");
+			this.tile(exit[0], exit[1], "door");
 		}, this);
 	};
 	this.update = function (noRedraw) {
@@ -1381,22 +1513,28 @@ function Room(x, y) {
 		else
 			return t[this.tiles[y * width + x]];
 	};
-	this.redraw = function redraw() {
+	this.redraw = function () {
 		var tile = "";
 		$room.innerHTML = "";
+		this.fogtiles.fill(true);
+		look(player.x, player.y, player.sight);
 		for (var y = 0; y < height; y++) {
 			for (var x = 0; x < width; x++) {
-				tile = this.tile(x, y).symbol;
+				if (this.fog(x, y))
+					tile = "'";
+				else {
+					tile = this.tile(x, y).symbol;
 
-				this.props.forEach(function (prop) {
-					if (prop.x == x && prop.y == y)
-						tile = prop.symbol;
-				}, this);
+					this.props.forEach(function (prop) {
+						if (prop.x == x && prop.y == y)
+							tile = prop.symbol;
+					}, this);
 
-				this.actors.forEach(function (actor) {
-					if (actor.x == x && actor.y == y)
+					this.actors.forEach(function (actor) {
+						if (actor.x == x && actor.y == y)
 						tile = actor.symbol;
-				}, this);
+					}, this);
+				}
 
 				$room.innerHTML += tile;
 			}
@@ -1433,16 +1571,45 @@ function Room(x, y) {
 			this.props.push(obj);
 		return obj;
 	};
-	//Returns everything at position x, y
+	this.fog = function (x, y, val) {
+		if (val === undefined)
+			return this.fogtiles[y * width + x];
+		this.fogtiles[y * width + x] = val;
+	};
+	this.inbounds = function (x, y) {
+		return x < width && x >= 0 && y < height && y >= 0;	
+	};
+	//Returns everything at position x, y (can filter for properties)
 	this.at = function (x, y, filter) {
-		//@todo: add filter functionality
-		//@todo: functionality
+		var results = [];
+		var result;
+		filter = filter || {};
+
+		//Find tile
+		result = this.tile(x, y);
+		if (result.name != "bound")
+			results.push(result);
+		
+		//Find actor
+		result = this.actors.find(function (actor) {
+			return actor.x == x && actor.y == y;
+		});
+		if (result)
+			results.push(result);
+		
+		//Filter
+		return results.filter(function (result) {
+			return _.pairs(filter).every(function (entry) {
+				return result[entry[0]] == entry[1];
+			});
+		});
 	}
 
 	//Initialize
 	this.generate();
 }
 
+runtests();
 
 //Load resources
 multireq(["resource/tiles.yml",

@@ -8,6 +8,7 @@ _defaults:
   armor: 0
   _armor_armor_min: [1]
   rarity: common
+  wear: 0
 
 knife:
   category: weapon
@@ -125,7 +126,13 @@ fine meal:
   category: consumable
   rarity: rare
   hp: 5
+  maxhp: 1
   stamina: 2
+
+potion of sight:
+  category: consumable
+  rarity: rare
+  sight: 1
 
 sweetbreads:
   category: consumable
@@ -140,9 +147,31 @@ entrails:
 bone:
   category: trash
 
+goo:
+  category: consumable
+  stamina: 1
+
 stone:
   category: trash
 
 wristwatch:
   rarity: vrare
   category: trash
+
+bag:
+  rarity: common
+  category: gear
+  slot: back
+  storage: 10
+
+rucksack:
+  rarity: vrare
+  category: gear
+  slot: back
+  storage: 15
+
+knapsack:
+  rarity: vrare
+  category: gear
+  slot: back
+  storage: 20

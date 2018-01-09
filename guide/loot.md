@@ -19,6 +19,7 @@ Flags are the single-word elements of loot phrases. The types of flags are as fo
 - Rarity (essentially a rough value index): `common, rare, vrare, mythical`
 - Exact Rarity (only this rarity, none below): `_common, _rare, _vrare, _mythical`
 - Category: `misc, consumable, weapon, armor...`
+- Negation: `-trash, -weapon, -common...`
 - Specific Item: `knife, longsword, apple...`
 
 ## Sentences

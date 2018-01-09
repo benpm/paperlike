@@ -8,6 +8,7 @@ _defaults:
   stamina: 3
   strength: 1
   armor: 0
+  sight: 3
 
 player:
   symbol: "@"
@@ -16,6 +17,7 @@ player:
   rarity: none
   stash: "max=5"
   stamina: 5
+  sight: 5
 
 rat:
   symbol: "r"
@@ -23,12 +25,28 @@ rat:
   hp: 5
   stash: "num=1,entrails,bone"
 
+goo:
+  symbol: "G"
+  category: monster
+  hp: 8
+  behaviour: follow
+  stash: "num=1,goo"
+
 goblin:
   symbol: "g"
   category: monster
   hp: 8
   behaviour: follow
   stash: "num=2,entrails,bone & num=1,p=50,weapon & num=1,p=50,armor"
+
+warm goo:
+  symbol: "O"
+  category: monster
+  rarity: rare
+  hp: 8
+  behaviour: follow
+  strength: 3
+  stash: "num=1,goo"
 
 troglodyte:
   symbol: "T"
@@ -40,6 +58,15 @@ troglodyte:
   stamina: 7
   strength: 2
   stash: "num=2,entrails,bone & num=1,p=50,weapon & num=1,p=50,armor"
+
+hot goo:
+  symbol: "8"
+  category: monster
+  rarity: vrare
+  hp: 8
+  behaviour: follow
+  strength: 6
+  stash: "num=1,goo"
 
 demon:
   symbol: "D"

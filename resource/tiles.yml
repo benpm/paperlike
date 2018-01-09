@@ -1,14 +1,36 @@
 _defaults:
   symbol: "?"
   solid: false
+  transparent: false
 
 floor:
   symbol: "."
+  transparent: true
 
 wall:
   symbol: "#"
   solid: true
 
 bound:
-  symbol: " "
+  symbol: "'"
   solid: true
+
+plant:
+  symbol: "p"
+  solid: false
+  transparent: true
+
+stone:
+  symbol: "s"
+  solid: true
+  transparent: true
+
+fountain:
+  symbol: "f"
+  solid: true
+  transparent: true
+
+door:
+  symbol: "|"
+  solid: false
+  transparent: false
