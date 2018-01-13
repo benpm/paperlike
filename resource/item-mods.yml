@@ -5,6 +5,7 @@ broken:
   application: all
   damage: -99
   armor: -99
+  broken: true
 
 rusty:
   rarity: common

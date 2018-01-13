@@ -82,7 +82,111 @@ if (innerWidth == 758 && innerHeight == 945)
 if (isKindle)
 	info = window.alert;
 else
-	info = console.info;	
+	info = console.info;
+
+//Line of sight
+var LOS = function () {
+	var occlude = [], angle, mid, start, end, _x, _y, blocked, n, low, high, newBlock, newlyBlocked;
+	var octants = [
+		[1, 1, 0],
+		[1, 1, 1],
+		[1, -1, 0],
+		[1, -1, 1],
+		[-1, 1, 0],
+		[-1, 1, 1],
+		[-1, -1, 0],
+		[-1, -1, 1]
+	];
+	return {
+		coalesce: true,
+		restrict: 2,
+		radius: 8,
+		tallyBlockage: function (b) {
+			if (mid >= b[0] && mid <= b[1]) n++;
+			if (start >= b[0] && start <= b[1]) n++;
+			if (end >= b[0] && end <= b[1]) n++;
+		},
+		coalescer: function (block) {
+			if (block[0] < newBlock[0]) {
+				low = block;
+				high = newBlock;
+			} else if (newBlock[0] < block[0]) {
+				low = newBlock;
+				high = block;
+			} else {
+				newBlock[1] = Math.max(block[1], newBlock[1]);
+				return false;
+			}
+
+			if (low[1] >= high[0]) {
+				newBlock[0] = Math.min(low[0], high[0]);
+				newBlock[1] = Math.max(low[1], high[1]);
+				return false;
+			}
+
+			return true;
+		},
+		calculate: function (x, y) {
+			//Light at initial position
+			room.fog(x, y, false);
+
+			//Loop through octants
+			for (var octIndex = 0; octIndex < 8; octIndex++) {
+				occlude.length = 0;
+				for (var i = 1; i <= this.radius; i++) {
+					angle = 1 / (i + 1);
+					for (var j = 0; j <= i; j++) {
+						//Calculate start, mid and end slopes
+						start = j * angle;
+						mid = (j + 0.5) * angle;
+						end = (j + 1) * angle;
+
+						//Determine coordinates from octant
+						if (octants[octIndex][2]) {
+							_x = x + i * octants[octIndex][0];
+							_y = y + j * octants[octIndex][1];
+						} else {
+							_x = x + j * octants[octIndex][0];
+							_y = y + i * octants[octIndex][1];
+						}
+
+						//Radial restriction
+						if (eDist(x, y, _x, _y) > this.radius)
+							continue;
+
+						//Boundary restriction
+						if (!room.inbounds(_x, _y))
+							break;
+
+						//Is cell blocking?
+						if (!room.tile(_x, _y).transparent) {
+							newBlock = [start, end];
+							newlyBlocked = occlude.length;
+
+							//Coalesce blocked angles
+							if (this.coalesce)
+								occlude = occlude.filter(this.coalescer, this);
+							occlude.push(newBlock);
+						}
+
+						//Check if this is blocked
+						n = 0;
+						occlude.forEach(this.tallyBlockage, this);
+						if (n > this.restrict) continue;
+
+						//Light this cell
+						room.fog(_x, _y, false);
+					}
+
+					//End condition
+					if (occlude.length > 0 && occlude[0][0] == 0 && occlude[0][1] == 1)
+						break;
+				}
+			}
+		}
+	};
+}();
+
 
 
 //// Game Functions
@@ -102,7 +206,7 @@ function sumMembers(obj) {
 			}
 		});
 	}
-};
+}
 //Pushes item into list or creates list
 function insertion(obj, key, value) {
 	if (!obj[key])
@@ -126,7 +230,7 @@ function unFalsy(obj) {
 			newObj[key] = obj[key];	
 	});
 	return newObj;
-};
+}
 //Redraw inventory boxes
 function invdraw() {
 	var i = 0;
@@ -270,8 +374,10 @@ function turn() {
 	$st.innerHTML = s("<img src='img/stamina.svg'>%d/%d %s", player.stamina, player.maxstamina,
 		player.d_stamina ? s("<span>%s%d</span>",
 			player.d_stamina > 0 ? "+" : "", player.d_stamina) : "");
-	$ar.innerHTML = s("<img src='img/armor.svg'>%d", player.defense());
-	$dmg.innerHTML = s("<img src='img/damage.svg'>%d", player.damage());
+	$ar.innerHTML = s("<img src='img/armor.svg'>%d %s", player.defense(),
+		player.stash.broken.armor ? "<span>BROKEN!</span>" : "");
+	$dmg.innerHTML = s("<img src='img/damage.svg'>%d %s", player.damage(),
+		player.stash.broken.weapon ? "<span>BROKEN!</span>" : "");
 	$msg.innerText = msgbuffer.join(", then ");
 	if (!$msg.innerText)
 		$msg.innerText = "...";	
@@ -305,6 +411,8 @@ function invent(dom) {
 	var desc = _.omit(unFalsy(item),
 		"name", "category", "slot", "equippable", "equipped");
 	$idesc.innerHTML = item ? strimplify(JSON.stringify(desc)) : "";
+	if (item && item.broken)
+		$idesc.innerHTML = "this item is broken!";	
 	$iequip.src = "img/unchecked.svg";
 	$iequip.className = "invalid";
 	$itrash.className = "invalid";
@@ -413,25 +521,15 @@ function nmod(x, m) {
 function repChar(str, i, chr) {
 	return str.substr(0, i) + chr + str.substr(i + 1);
 }
-//Line of sight utilities
+//Line of sight utility
 function look(x, y, distance) {
-	var increment = 1 / (distance * 3);
-	for (var ang = 0; ang < 2 * Math.PI; ang += increment) {
-		ray(x, y, ang, distance);
-	}
+	LOS.radius = distance;
+	LOS.calculate(x, y);
+	room.fogSpread();
 }
-function ray(x, y, angle, steps) {
-	if (!room.inbounds(Math.round(x), Math.round(y)))
-		return false;	
-	room.fog(Math.round(x), Math.round(y), false);
-	if (steps <= 0)
-		return false;
-	var tile = room.tile(Math.round(x), Math.round(y));
-	if (!tile.transparent)
-		return true;
-	return ray(
-		x + Math.cos(angle),
-		y + Math.sin(angle), angle, steps - 1);
+//Returns euclidean distance
+function eDist(x1, y1, x2, y2) {
+	return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 }
 //Returns chess distance
 function dist(x1, y1, x2, y2) {
@@ -695,13 +793,11 @@ function playerDeath() {
 //Run some compatiblity tests
 function runtests() {
 	alert(s("[RUNTESTS]\n\
-		room.checksolid is %s\n\
 		array.find is %s\n\
 		matchPos is %s\n\
 		Object.entries is %s\n\
 		isKindle = %s\n\
 		size: %s x %s",
-		typeof room.checksolid,
 		typeof Array.prototype.find,
 		typeof matchPos,
 		typeof Object.entries,
@@ -909,8 +1005,8 @@ function Actor(actype, x, y, props) {
 		//Regain stamina OR hp
 		if (this.stamina < this.maxstamina) {
 			this.stamina += this.strength;
-		} else if (this.hp < this.maxhp) {
-			this.hp += this.strength;
+		} else if (this.hp < this.maxhp && chance.bool({ likelihood: this.strength * 10})) {
+			this.hp += 1;
 		}
 
 		//Cap some properties
@@ -1071,6 +1167,7 @@ function Stash(specify) {
 	this.items = [];
 	this.equipped = [];
 	this.parent = null
+	this.broken = {};
 
 	//Adds an item to the stash
 	this.add = function (item) {
@@ -1144,15 +1241,22 @@ function Stash(specify) {
 	};
 	//Update items
 	this.update = function () {
+		//Reset
+		this.broken = {};
+
 		//Broken item chances
 		this.equipped.forEach(function (item) {
-			if (Math.random() < item.wear / (item.durability * 250)) {
+			if (item.worn != 0
+				&& item.wear != item.worn
+				&& Math.random() < item.wear / (item.durability * 250)) {
 				//Break, unequip
 				modTypes.broken.apply(item);
 				if (item.equipped)
 					this.equip(item);
 				item.equippable = false;
+				this.broken[item.category] = true;
 			}
+			item.worn = item.wear;
 		}, this);
 	};
 
@@ -1233,6 +1337,7 @@ function Item(itype, props) {
 	this.type = itemTypes[itype].name;
 	Object.assign(this, itemTypes[itype], props);
 	this.equipped = false;
+	this.worn = this.wear;
 	
 	//Use this item in reference to some actor
 	this.use = function (who, execute) {
@@ -1576,6 +1681,23 @@ function Room(x, y) {
 			return this.fogtiles[y * width + x];
 		this.fogtiles[y * width + x] = val;
 	};
+	this.fogSpread = function () {
+		for (var y = 0; y < height; y++) {
+			for (var x = 0; x < width; x++) {
+				if (!this.tile(x, y).transparent) {
+					if ((!this.fog(x - 1, y) && this.tile(x - 1, y).transparent) ||
+						(!this.fog(x, y - 1) && this.tile(x, y - 1).transparent) ||
+						(!this.fog(x + 1, y) && this.tile(x + 1, y).transparent) ||
+						(!this.fog(x, y + 1) && this.tile(x, y + 1).transparent) ||
+						(!this.fog(x - 1, y - 1) && this.tile(x - 1, y - 1).transparent) ||
+						(!this.fog(x - 1, y + 1) && this.tile(x - 1, y + 1).transparent) ||
+						(!this.fog(x + 1, y - 1) && this.tile(x + 1, y - 1).transparent) ||
+						(!this.fog(x + 1, y + 1) && this.tile(x + 1, y + 1).transparent))
+						this.fog(x, y, false);
+				}
+			}
+		}
+	};
 	this.inbounds = function (x, y) {
 		return x < width && x >= 0 && y < height && y >= 0;	
 	};
@@ -1609,7 +1731,9 @@ function Room(x, y) {
 	this.generate();
 }
 
-runtests();
+//Run tests if Kindle
+if (isKindle)
+	runtests();
 
 //Load resources
 multireq(["resource/tiles.yml",

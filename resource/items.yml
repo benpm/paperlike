@@ -134,6 +134,11 @@ potion of sight:
   rarity: rare
   sight: 1
 
+potion of clairvoyance:
+  category: consumable
+  rarity: vrare
+  sight: 3
+
 sweetbreads:
   category: consumable
   rarity: rare
