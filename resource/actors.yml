@@ -3,25 +3,30 @@ _defaults:
   category: "misc"
   rarity: common
   hp: 10
-  behaviour: "wander"
+  idle: wander
+  behaviour: wander
   stash: null
   stamina: 3
   strength: 1
   armor: 0
   sight: 3
+  dexterous: false
 
 player:
   symbol: "@"
   hp: 10
+  idle: none
   behaviour: none
   rarity: none
   stash: "max=5"
   stamina: 5
   sight: 5
+  dexterous: true
 
 rat:
   symbol: "r"
   category: monster
+  behaviour: flee
   hp: 5
   stash: "num=1,entrails,bone"
 
@@ -36,8 +41,10 @@ goblin:
   symbol: "g"
   category: monster
   hp: 8
+  sight: 4
   behaviour: follow
   stash: "num=2,entrails,bone & num=1,p=50,weapon & num=1,p=50,armor"
+  dexterous: true
 
 warm goo:
   symbol: "O"
@@ -53,11 +60,13 @@ troglodyte:
   category: monster
   rarity: rare
   hp: 15
+  sight: 6
   armor: 2
   behaviour: follow
   stamina: 7
   strength: 2
   stash: "num=2,entrails,bone & num=1,p=50,weapon & num=1,p=50,armor"
+  dexterous: true
 
 hot goo:
   symbol: "8"
@@ -77,5 +86,7 @@ demon:
   behaviour: follow
   stamina: 10
   strength: 3
+  sight: 6
   armor: 2
   stash: "num=2,entrails,bone & num=1,p=50,weapon & num=1,p=50,armor"
+  dexterous: true

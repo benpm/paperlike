@@ -14,10 +14,23 @@ rusty:
   durability: -1
   wear: 50
 
+damaged:
+  rarity: rare
+  application: weapon
+  durability: -1
+  damage: -2
+  wear: 75
+
 fine:
   rarity: common
   application: weapon
   damage: 1
+  durability: 1
+
+elegant:
+  rarity: common
+  application: armor
+  weight: -1
   durability: 1
 
 enhanced:
@@ -37,12 +50,7 @@ well-forged:
   application: weapon
   durability: 2
 
-damaged:
-  rarity: common
-  application: weapon
-  durability: -2
-  damage: -2
-  wear: 75
+
 
 spined:
   rarity: vrare
@@ -61,18 +69,93 @@ well-worn:
   application: armor
   armor: -1
 
+mangled:
+  rarity: rare
+  application: armor
+  armor: -2
+
+bolstered:
+  rarity: rare
+  application: armor
+  armor: 2
+  weight: 2
+
+well-crafted:
+  rarity: common
+  application: armor
+  weight: -1
+
 strengthened:
   rarity: rare
   application: armor
   armor: 1
 
+graceful:
+  rarity: rare
+  application: armor
+  weight: -2
+
 reinforced:
-  rarity: vrare
+  rarity: rare
   application: armor
   armor: 2
+  weight: 1
 
 tempered:
   rarity: vrare
   application: armor
-  armor: 1
+  armor: 2
   weight: -1
+
+exalted:
+  rarity: mythical
+  application: armor
+  armor: 5
+
+weightless:
+  rarity: mythical
+  application: armor
+  weight: -5
+
+# Consumable Modifiers
+
+healthful:
+  rarity: common
+  application: consumable
+  hp: 2
+  stamina: 1
+
+invigorating:
+  rarity: vrare
+  application: consumable
+  hp: 5
+  stamina: 3
+
+lifeforce-infused:
+  rarity: mythical
+  application: consumable
+  hp: 6
+  stamina: 6
+  strength: 1
+
+bitter:
+  rarity: common
+  application: consumable
+  hp: -1
+
+rotten:
+  rarity: rare
+  application: consumable
+  hp: -2
+
+poisoned:
+  rarity: vrare
+  application: consumable
+  hp: -4
+  stamina: -2
+
+poisoned:
+  rarity: vrare
+  application: consumable
+  hp: -4
+  stamina: -2

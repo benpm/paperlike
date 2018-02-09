@@ -3,10 +3,6 @@
 	font-family: "tile";
 	src: url("../font/tileset.ttf");
 }
-@font-face {
-	font-family: "icons";
-	src: url("../font/icons.ttf");
-}
 
 /* Animations */
 @keyframes blink {

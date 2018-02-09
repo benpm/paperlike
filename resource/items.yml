@@ -9,6 +9,7 @@ _defaults:
   _armor_armor_min: [1]
   rarity: common
   wear: 0
+  allowmods: true
 
 knife:
   category: weapon
@@ -61,6 +62,7 @@ whip:
   damage: 1
   weight: 0
   durability: 1
+  allowmods: false
 
 battle hammer:
   category: weapon
@@ -104,6 +106,31 @@ shoes:
   armor: 1
   weight: 1
   durability: 1
+  allowmods: false
+
+leather pants:
+  category: armor
+  slot: legs
+  armor: 1
+  weight: 1
+  durability: 1
+  allowmods: false
+
+leather hat:
+  category: armor
+  slot: head
+  armor: 1
+  weight: 1
+  durability: 1
+  allowmods: false
+
+cloth shirt:
+  category: armor
+  slot: chest
+  armor: 1
+  weight: 1
+  durability: 1
+  allowmods: false
 
 gauntlet:
   category: armor
@@ -137,7 +164,42 @@ potion of sight:
 potion of clairvoyance:
   category: consumable
   rarity: vrare
+  sight: 2
+
+elixir of perception:
+  category: consumable
+  rarity: mythical
   sight: 3
+
+potion of might:
+  category: consumable
+  rarity: vrare
+  maxhp: 5
+
+elixir of fortitude:
+  category: consumable
+  rarity: mythical
+  maxstamina: 6
+  maxhp: 6
+
+potion of restoration:
+  category: consumable
+  rarity: rare
+  hp: 10
+  stamina: 10
+
+potion of vitality:
+  category: consumable
+  rarity: rare
+  maxstamina: 2
+  maxhp: 2
+  hp: 5
+  stamina: 5
+
+potion of rejuvination:
+  category: consumable
+  rarity: rare
+  maxstamina: 3
 
 sweetbreads:
   category: consumable
@@ -148,6 +210,7 @@ sweetbreads:
 entrails:
   category: consumable
   hp: 1
+  allowmods: false
 
 bone:
   category: trash
@@ -155,6 +218,7 @@ bone:
 goo:
   category: consumable
   stamina: 1
+  allowmods: false
 
 stone:
   category: trash

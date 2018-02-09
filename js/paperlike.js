@@ -28,11 +28,12 @@ var boundFunc = {
 	max: Math.min
 };
 var difficulties = [
-	"common",
-	"common",
-	"rare",
-	"vrare",
-	"mythical"
+	"none",
+	"easy",
+	"medium",
+	"hard",
+	"vhard",
+	"vvhard"
 ];
 var rarities = {
 	common: 0,
@@ -40,6 +41,7 @@ var rarities = {
 	vrare: 2,
 	mythical: 3
 };
+var rarityLevels = _.keys(rarities);
 
 //DOM Elements
 var $room, $inv, $bInv, $islots,
@@ -49,9 +51,9 @@ var $room, $inv, $bInv, $islots,
 	$pad, $tooltip, $death, $stats;
 
 //Misc. globals
-var isKindle = false, info, width, height, halfheight, halfwidth, xcol, restartKeys = 5,
+var isKindle = false, info, width=21, height=15, halfheight, halfwidth, xcol, restartKeys = 5,
 	yrow, player, controls, gamepad = null, room, rooms = {}, actions, turns = 0,
-	msgbuffer = [], lastbuttons = new Array(16), buttons = new Array(16);
+	msgbuffer = [], lastbuttons = Array(16), buttons = Array(16);
 
 //Types of tiles
 var t = {};
@@ -69,7 +71,7 @@ var itemTypes = {};
 var itemCategories = {};
 
 //Types of item modifiers
-var modTypes = {};
+var modifiers = {};
 var modCategories = {};
 
 //Simplifying things
@@ -86,7 +88,8 @@ else
 
 //Line of sight
 var LOS = function () {
-	var occlude = [], angle, mid, start, end, _x, _y, blocked, n, low, high, newBlock, newlyBlocked;
+	var occlude = [], angle, mid, start, end, _x, _y, blocked,
+		n, low, high, newBlock, newlyBlocked, saw;
 	var octants = [
 		[1, 1, 0],
 		[1, 1, 1],
@@ -126,9 +129,11 @@ var LOS = function () {
 
 			return true;
 		},
-		calculate: function (x, y) {
+		calculate: function (x, y, noLight) {
+			var seen = [];
+
 			//Light at initial position
-			room.fog(x, y, false);
+			if (!noLight) room.fog(x, y, false);
 
 			//Loop through octants
 			for (var octIndex = 0; octIndex < 8; octIndex++) {
@@ -175,7 +180,9 @@ var LOS = function () {
 						if (n > this.restrict) continue;
 
 						//Light this cell
-						room.fog(_x, _y, false);
+						if (!noLight) room.fog(_x, _y, false);
+						saw = room.at(_x, _y, {class: "actor"});
+						if (saw.length) seen.push(saw[0]);
 					}
 
 					//End condition
@@ -183,6 +190,65 @@ var LOS = function () {
 						break;
 				}
 			}
+
+			return seen;
+		}
+	};
+}();
+var Pathfinding = function () {
+	var dirgrid = Array(width * height);
+	var spread = 8;
+	var d;
+	var dirs = [
+		{ x:  1, y: 0 },
+		{ x: -1, y: 0 },
+		{ x: 0, y:  1 },
+		{ x: 0, y: -1 }
+	];
+
+	function iterate(x, y, i) {
+		if (i <= 0)
+			return;
+		if (!room.inbounds(x, y))
+			return;
+		if (room.tile(x, y).solid || dirgrid[y * width + x] > i)
+			return;
+		dirgrid[y * width + x] = i;
+		iterate(x - 1, y, i - 1);
+		iterate(x, y - 1, i - 1);
+		iterate(x + 1, y, i - 1);
+		iterate(x, y + 1, i - 1);
+	}
+
+	return {
+		//Creates the directional nav grid based on given goal coordinates
+		populate: function (x, y) {
+			dirgrid.fill(0);
+			iterate(x, y, spread);
+		},
+
+		//Evaluates the nav grid to determine which way towards the goal
+		navigate: function (x, y) {
+			//Takes max of neighboring nav tiles
+			var max = { x: 0, y: 0 };
+			max.x = dirs[0].x;
+			max.y = dirs[0].y;
+
+			//Out of range, or on top of goal
+			if (dirgrid[y * width + x] == 0)
+				return {x: 0, y: 0};
+
+			//Loop and find best option
+			for (var i = 1; i < dirs.length; i++) {
+				d = dirs[i];
+				if (dirgrid[(y + d.y) * width + (x + d.x)] >= dirgrid[(y + max.y) * width + (x + max.x)]
+					&& eDist(x + d.x, y + d.y, player.x, player.y) < eDist(x + max.x, y + max.y, player.x, player.y)) {
+					max.x = d.x;
+					max.y = d.y;
+				}
+			}
+
+			return max;
 		}
 	};
 }();
@@ -276,7 +342,16 @@ function getActions() {
 	//Inventory
 	actions.push({ name: "Open Inventory", symbol: "1", override: function () {
 		Stage.setscene('inv');
-	}});
+	}
+	});
+
+	//Rest
+	actions.push({
+		name: "Rest", symbol: "~", override: function () {
+			player.stamina += 1;
+		}
+	});
+
 
 	//Actors
 	room.actors.forEach(function(actor) {
@@ -359,32 +434,46 @@ function turn() {
 		return;
 	}
 
+	//Pathfinding navgrid population
+	Pathfinding.populate(player.x, player.y);
+
 	//Update room
 	room.update();
 
 	//List actions
 	getActions();
 
-	//Update stats
+	//Update delta stats
 	player.d_hp = player.hp - player.d_hp;
 	player.d_stamina = player.stamina - player.d_stamina;
+
+	//Health Points
 	$hp.innerHTML = s("<img src='img/hp.svg'>%d/%d %s", player.hp, player.maxhp,
 		player.d_hp ? s("<span>%s%d</span>",
 			player.d_hp > 0 ? "+" : "", player.d_hp) : "");
+	
+	//Stamina
 	$st.innerHTML = s("<img src='img/stamina.svg'>%d/%d %s", player.stamina, player.maxstamina,
-		player.d_stamina ? s("<span>%s%d</span>",
-			player.d_stamina > 0 ? "+" : "", player.d_stamina) : "");
+		player.stamina == 0 ? "<span>EXHAUSTED!</span>" :
+			(player.d_stamina ? s("<span>%s%d</span>",
+			player.d_stamina > 0 ? "+" : "", player.d_stamina) : ""));
+	
+	//Armor
 	$ar.innerHTML = s("<img src='img/armor.svg'>%d %s", player.defense(),
 		player.stash.broken.armor ? "<span>BROKEN!</span>" : "");
+	
+	//Effective Damage
 	$dmg.innerHTML = s("<img src='img/damage.svg'>%d %s", player.damage(),
 		player.stash.broken.weapon ? "<span>BROKEN!</span>" : "");
+	
+	//Message (unused)
 	$msg.innerText = msgbuffer.join(", then ");
 	if (!$msg.innerText)
 		$msg.innerText = "...";	
 	msgbuffer.length = 0;
 	turns++;
 
-	//Post-update
+	//Post-update delta stats
 	player.d_hp = player.hp;
 	player.d_stamina = player.stamina;
 
@@ -437,6 +526,8 @@ function invEquip() {
 
 	//Select and equip if equippable
 	var item = invSelected();
+	if (!item)
+		return false;
 	if (!item.equippable)
 		return;
 	else {
@@ -455,6 +546,8 @@ function invDelete() {
 
 	//Check for unequippable
 	var item = invSelected();
+	if (!item)
+		return;	
 	if (item.equipped && !item.canUnequip(player))
 		return;
 
@@ -521,19 +614,13 @@ function nmod(x, m) {
 function repChar(str, i, chr) {
 	return str.substr(0, i) + chr + str.substr(i + 1);
 }
-//Line of sight utility
-function look(x, y, distance) {
-	LOS.radius = distance;
-	LOS.calculate(x, y);
-	room.fogSpread();
-}
 //Returns euclidean distance
 function eDist(x1, y1, x2, y2) {
 	return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 }
-//Returns chess distance
+//Returns manhattan distance
 function dist(x1, y1, x2, y2) {
-	return Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+	return Math.abs(x2 - x1) + Math.abs(y2 - y1);
 }
 function objdist(a, b) {
 	return dist(a.x, a.y, b.x, b.y);
@@ -696,6 +783,7 @@ function reqYaml(path, Type, decrement) {
 	req.open("GET", path, true);
 	req.send();
 	req.onerror = console.error;
+	req.onabort = console.error;
 	req.onload = function () {
 		console.debug("loaded " + path);
 		var entries = YAML.parse(req.responseText);
@@ -855,8 +943,6 @@ function setup() {
 	updateStyle();
 
 	//Stage setup
-	width = 21;
-	height = 15;
 	xcol = width - 1;
 	yrow = height - 1;
 	halfwidth = xcol / 2;
@@ -941,6 +1027,7 @@ function Tile(name, props) {
 function Actype(name, props) {
 	Object.assign(this, _.defaults(props, Actype.defaults));
 	this.name = name;
+	this.class = "actor";
 
 	actorTypes[name] = this;
 	insertion(actorCategories, this.category, this.name);
@@ -956,6 +1043,7 @@ function Actor(actype, x, y, props) {
 	this.aggro = false;
 	this.maxhp = this.hp;
 	this.maxstamina = this.stamina;
+	var dx, dy, dpos;
 
 	//Initialize stash
 	if (this.stash) {
@@ -975,6 +1063,10 @@ function Actor(actype, x, y, props) {
 			}
 			return false;
 		}
+		
+		//Doors
+		if (!this.dexterous && room.tile(this.x + dx, this.y + dy).name == "door")
+			return false;	
 
 		//Otherwise, move and return true
 		if (this.stamina > 0) {
@@ -989,6 +1081,7 @@ function Actor(actype, x, y, props) {
 
 		//Check for death
 		if (this.hp <= 0) {
+			this.stash.deleteBroken();
 			this.stash.forceUnequip();
 			this.stash.parent = room.add(new Prop("carcass",
 				this.x, this.y,
@@ -999,8 +1092,13 @@ function Actor(actype, x, y, props) {
 		}
 
 		//Check for flee
-		if (this.hp <= this.maxhp / 5)
-			this.behaviour = "flee";
+		if (this.hp <= this.maxhp / 5) {
+			this.aggro = false;
+			this.idle = "flee";
+		}
+		
+		//Line of sight
+		this.look();
 
 		//Regain stamina OR hp
 		if (this.stamina < this.maxstamina) {
@@ -1017,23 +1115,15 @@ function Actor(actype, x, y, props) {
 		this.stash.update();
 
 		//Movement
-		switch(this.behaviour) {
+		switch(this.aggro ? this.behaviour : this.idle) {
 			case "wander":
-				this.move(
-					randint(-1, 1),
-					randint(-1, 1));
+				dx = randint(-1, 1);
+				dy = dx ? 0 : randint(-1, 1);
+				this.move(dx, dy);
 				break;
 			case "follow":
-				if (objdist(this, player) <= 2)
-					this.move(
-						objdir(this, player)[0],
-						objdir(this, player)[1]
-					);
-				else
-					this.move(
-						randint(-1, 1),
-						randint(-1, 1));
-				this.aggro = true;
+				dpos = Pathfinding.navigate(this.x, this.y);
+				this.move(dpos.x, dpos.y);
 				break;
 			case "flee":
 				if (objdist(this, player) <= 5)
@@ -1042,9 +1132,7 @@ function Actor(actype, x, y, props) {
 						-objdir(this, player)[1]
 					);
 				else
-					this.move(
-						randint(-1, 1),
-						randint(-1, 1));
+					this.be
 				this.aggro = false;
 				this.stamina -= 1;
 				break;
@@ -1142,11 +1230,23 @@ function Actor(actype, x, y, props) {
 		var inHand = this.stash.slot("hand");
 		return inHand ? inHand.weight : 0;
 	};
+	//Line of sight utility
+	this.look = function () {
+		LOS.radius = this.sight;
+		this.aggro = false;
+		var seen = LOS.calculate(this.x, this.y, this !== player);
+		seen.forEach(function (actor) {
+			if (actor === player) {
+				this.aggro = true;
+			}
+		}, this);
+	}
 }
 //Type of object
 function Proptype(name, props) {
 	Object.assign(this, _.defaults(props, Proptype.defaults));
 	this.name = name;
+	this.class = "prop";
 
 	propTypes[this.symbol] = propTypes[name] = this;
 	insertion(propCategories, this.category, this.name);
@@ -1224,6 +1324,13 @@ function Stash(specify) {
 			item.equipped = false;
 		}, this);
 	};
+	//Deletes all broken items
+	this.deleteBroken = function () {
+		for (var i = this.items.length - 1; i >= 0; i--) {
+			if (this.items[i].broken)
+				this.remove(this.items[i]);	
+		}
+	}
 	//Gets item in virtual slot
 	this.slot = function (slot) {
 		for (var i = 0; i < this.equipped.length; i++) {
@@ -1250,7 +1357,7 @@ function Stash(specify) {
 				&& item.wear != item.worn
 				&& Math.random() < item.wear / (item.durability * 250)) {
 				//Break, unequip
-				modTypes.broken.apply(item);
+				modifiers.broken.apply(item, true);
 				if (item.equipped)
 					this.equip(item);
 				item.equippable = false;
@@ -1275,7 +1382,7 @@ function Stash(specify) {
 			//Operate on word
 			switch (tag) {
 				case "p":
-					if (Math.random() < int(val / 100.0))
+					if (Math.random() < val / 100)
 						skipPhrase = true;
 					break;	
 				case "max":
@@ -1307,9 +1414,12 @@ function Stash(specify) {
 
 				//Apply a random modifier from rarity and modifers to new item
 				if (chance.bool() && modCategories[item.category] && modCategories[item.rarity]) {
-					var mods = _.intersection(modCategories[item.category], modCategories[item.rarity]);
+					var randRarity = chance.weighted(
+						["common", "rare", "vrare", "mythical"],
+						[100, 35, 10, 2]);
+					var mods = _.intersection(modCategories[item.category], modCategories[randRarity]);
 					if (mods.length > 0)
-						modTypes[chance.pickone(mods)].apply(item);
+						modifiers[chance.pickone(mods)].apply(item);
 				}
 			}
 		}
@@ -1325,6 +1435,7 @@ function Itemtype(name, props) {
 	Object.assign(this, _.defaults(props, Itemtype.defaults));
 
 	this.name = name;
+	this.class = "item";
 	this.equippable = (this.slot != "");
 	this.speed = this.weight ? 5 - this.weight : 0;
 
@@ -1344,10 +1455,11 @@ function Item(itype, props) {
 		//Return true if item was used, only use if execute is true
 		switch (this.category) {
 			case "consumable":
-				if (this.hp && who.hp == who.maxhp)
-					return false;
 				if (execute) {
 					sumMembers(who, this);
+					if (this.hp > 0 && who.hp == who.maxhp
+						&& chance.bool({ likelihood: 25 }))
+						who.maxhp += Math.floor(this.hp / 3);
 				} else {
 					return true;
 				}
@@ -1414,13 +1526,16 @@ function Mod(name, props) {
 	this.name = name;
 	this.addins = _.omit(this, "application", "name");
 
-	this.apply = function (item) {
+	this.apply = function (item, forceApply) {
+		if (!item.allowmods && !forceApply)
+			return false;	
 		sumMembers(item, this.addins);
 		item.name = s("%s %s", this.name, item.name);
 		item.bounds();
+		return true;
 	};
 
-	modTypes[name] = this;
+	modifiers[name] = this;
 	if (!modCategories[this.application])
 		modCategories[this.application] = [];
 	modCategories[this.application].push(this.name);
@@ -1434,6 +1549,7 @@ function Room(x, y) {
 	this.tiles = "";
 	this.data = Array(width * height);
 	this.fogtiles = Array(width * height);
+	this.fogtiles.fill(true);
 	this.actors = [];
 	this.props = [];
 	this.x = x;
@@ -1536,10 +1652,13 @@ function Room(x, y) {
 	this.generate = function () {
 		//Generator subparameters
 		var monsters = this.difficulty * 2;
-		var rarity = difficulties[this.difficulty];
+		var challenge = difficulties[this.difficulty];
+		var rarity = rarityLevels[clamp(this.difficulty - 1, 0, _.size(rarities))]
 		var chests = randint(0, 3);
 		if (this.difficulty == 0)
 			chests = 2;	
+		
+		console.debug(monsters, challenge, rarity, chests);
 
 		//Fill with floor
 		this.tiles = t["floor"].symbol.repeat(width * height);
@@ -1553,6 +1672,16 @@ function Room(x, y) {
 		
 		//Create inner walls
 		this.gen.chop(0, 0, xcol, yrow);
+
+		//Create pillars
+		for (var i = 0, x = 0, y = 0; i < randint(0, 5); i++) {
+			x = randint(1, xcol - 2);
+			y = randint(1, yrow - 2);
+			this.tile(x, y, "wall");
+			this.tile(x + 1, y, "wall");
+			this.tile(x, y + 1, "wall");
+			this.tile(x + 1, y + 1, "wall");
+		}
 
 		//Create outer walls
 		this.gen.wall(0, 0, xcol, 0);
@@ -1591,8 +1720,28 @@ function Room(x, y) {
 		for (var i = 0; i < chests; i++) {
 			var x = randint(1, xcol - 1);
 			var y = randint(1, yrow - 1);
-			if (this.tile(x, y).name == "floor")
-				this.add(new Prop("chest", x, y, {stash: s("num=1-4,_%s", rarity)}));
+			if (this.tile(x, y).name == "floor") {
+				var sentence;
+				switch (challenge) {
+					case "none":
+					case "easy":	
+						sentence = "num=1-3,_common & num=1,p=10,_rare";
+						break;
+					case "medium":
+						sentence = "num=1,p=50,_common & num=1-2,_rare & num=1,p=10,_vrare";
+						break;
+					case "hard":
+						sentence = "num=1,p=20,_common & num=1,_vrare & num=1,p=5,_mythical";
+						break;
+					case "vhard":
+						sentence = "num=1,p=20,_rare & num=1-2,_vrare & num=1,p=20,_mythical";
+						break;
+					case "vvhard":
+						sentence = "num=1,p=10,_rare & num=1-3,_vrare & num=1,p=50,_mythical";
+						break;
+				}
+				this.add(new Prop("chest", x, y, { stash: sentence }));
+			}
 		}
 
 		//Create exits
@@ -1621,8 +1770,7 @@ function Room(x, y) {
 	this.redraw = function () {
 		var tile = "";
 		$room.innerHTML = "";
-		this.fogtiles.fill(true);
-		look(player.x, player.y, player.sight);
+		room.fogSpread();
 		for (var y = 0; y < height; y++) {
 			for (var x = 0; x < width; x++) {
 				if (this.fog(x, y))
@@ -1645,6 +1793,7 @@ function Room(x, y) {
 			}
 			$room.innerHTML += "<br>";
 		}
+		this.fogtiles.fill(true);
 	};
 	this.checksolid = function (x, y) {
 		var match;
