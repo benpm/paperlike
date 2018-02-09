@@ -891,6 +891,10 @@ function runtests() {
 		typeof Object.entries,
 		isKindle, innerWidth, innerHeight));
 }
+//Prevents default behaviour
+function preventDefault(event) {
+	event.preventDefault();
+}
 //Begin
 function begin() {
 	console.log("Begin");
@@ -940,6 +944,9 @@ function setup() {
 
 	//Style setup
 	window.addEventListener("resize", updateStyle);
+	document.ontouchmove = preventDefault;
+	document.ontouchstart = preventDefault;
+	document.ontouchend = preventDefault;
 	updateStyle();
 
 	//Stage setup
