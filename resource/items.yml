@@ -5,6 +5,8 @@ _defaults:
   _damage_weapon_range: [1, 99]
   weight: 0
   durability: 0
+  _durability_weapon_min: [1]
+  _durability_armor_min: [1]
   armor: 0
   _armor_armor_min: [1]
   rarity: common
