@@ -5,6 +5,9 @@
 ## About
 A small roguelike made for the kindle experimental browser. Should also work on most devices, including phones, tablets and PCs. You can find the [trello here](https://trello.com/b/D1EUAPSu/paperlike).
 
+## Demo
+An up-to-date demo is available to play at http://benpm.github.io/paperlike.
+
 ## Systems
 Paperlike is built with the following schemes in mind:
 - Very high modularity and can be easily modified or built on! See [Actors](guide/actors.md), [Properties](guide/properties.md)...
