@@ -48,7 +48,8 @@ var $room, $inv, $bInv, $islots,
 	$iname, $idesc, $iequip, $acts,
 	$hp, $st, $ar, $dmg,
 	$exit, $msg, $itrash, $iuse,
-	$pad, $tooltip, $death, $stats;
+	$pad, $tooltip, $death, $stats,
+	$buttons2;
 
 //Misc. globals
 var isKindle = false, info, width=21, height=15, halfheight, halfwidth, xcol, restartKeys = 5,
@@ -341,8 +342,8 @@ function getActions() {
 
 	//Inventory
 	actions.push({ name: "Open Inventory", symbol: "1", override: function () {
-		Stage.setscene('inv');
-	}
+			Stage.setscene('inv');
+		}
 	});
 
 	//Rest
@@ -413,8 +414,10 @@ function getActions() {
 
 	//Assign interaction function
 	for (var i = 0; i < $acts.children.length; i++) {
-		if ($acts.children[i].className != "invalid")
+		if ($acts.children[i].className != "invalid"){
 			$acts.children[i].onmousedown = perfAction;
+			$acts.children[i].ontouchstart = perfAction;
+		}
 		$acts.children[i].onmouseenter = doTooltip;
 		$acts.children[i].onmouseout = unTooltip;
 		$acts.children[i].setAttribute("index", i.toString());
@@ -885,11 +888,15 @@ function runtests() {
 		matchPos is %s\n\
 		Object.entries is %s\n\
 		isKindle = %s\n\
-		size: %s x %s",
+		size: %s x %s\n\
+		Object.assign: %s\n\
+		Array.prototype.fill: %s\n",
 		typeof Array.prototype.find,
 		typeof matchPos,
 		typeof Object.entries,
-		isKindle, innerWidth, innerHeight));
+		isKindle, innerWidth, innerHeight,
+		typeof Object.assign,
+		typeof Array.prototype.fill));
 }
 //Prevents default behaviour
 function preventDefault(event) {
@@ -941,6 +948,7 @@ function setup() {
 	$tooltip = document.getElementById("tooltip");
 	$death = document.getElementById("death");
 	$stats = document.getElementById("stats");
+	$buttons2 = document.getElementById("buttons2");
 
 	//Style setup
 	window.addEventListener("resize", updateStyle);
@@ -957,16 +965,18 @@ function setup() {
 
 	//Controls
 	document.addEventListener("keydown", keyinput);
-	gamepad = navigator.getGamepads()[0];
-	if (gamepad) {
-		setInterval(gamepadInput, 50);
-	}
-	console.debug(gamepad);
-	window.addEventListener("gamepadconnected", function (e) {
-		gamepad = e.gamepad;
-		setInterval(gamepadInput, 50);
+	if (navigator.getGamepads) {
+		gamepad = navigator.getGamepads()[0];
+		if (gamepad) {
+			setInterval(gamepadInput, 50);
+		}
 		console.debug(gamepad);
-	});
+		window.addEventListener("gamepadconnected", function (e) {
+			gamepad = e.gamepad;
+			setInterval(gamepadInput, 50);
+			console.debug(gamepad);
+		});
+	}
 }
 
 
@@ -988,6 +998,7 @@ var Stage = {
 				$inv.style.display = "none";
 				//$bInv.classList.remove("");
 				$exit.style.display = "none";
+				$buttons2.style.zIndex = "0";
 				$bInv.style.display = "";
 				if (document.getElementById("select"))
 					document.getElementById("select").id = "";
@@ -1012,6 +1023,7 @@ var Stage = {
 				$inv.style.display = "";
 				$bInv.style.display = "none";
 				$exit.style.display = "";
+				$buttons2.style.zIndex = "101";
 				$stats.style.display = "";
 				break;
 			case "dead":
@@ -1535,7 +1547,7 @@ function Mod(name, props) {
 
 	this.apply = function (item, forceApply) {
 		if (!item.allowmods && !forceApply)
-			return false;	
+			return false;
 		sumMembers(item, this.addins);
 		item.name = s("%s %s", this.name, item.name);
 		item.bounds();
@@ -1888,6 +1900,7 @@ function Room(x, y) {
 }
 
 //Run tests if Kindle
+//alert(navigator.platform + "\n" + navigator.product + "\n" + navigator.vendor + "\n" + navigator.appName);
 if (isKindle)
 	runtests();
 

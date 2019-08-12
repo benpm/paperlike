@@ -7,17 +7,18 @@
 	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 	<meta name="MobileOptimized" content="640">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-polyfill/7.4.4/polyfill.min.js"></script>
+	<!-- <script src="js/polyfill.min.js"></script> -->
 	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/sprintf/1.1.1/sprintf.min.js"></script>
 	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/chance/1.0.12/chance.min.js"></script>
 	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/yamljs/0.3.0/yaml.min.js"></script>
-	<script type="text/javascript" src="js/polyfill.min.js"></script>
 	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/underscore.string/3.3.4/underscore.string.min.js"></script>
 </head>
 <body>
 	<div id="death" style="display: none;">
 		<img src="img/death.svg" alt="">
-		<button onclick="begin();">New Dungeon</button>
+		<button onclick="begin();" ontouchstart="begin();">New Dungeon</button>
 	</div>
 	<div id="stats">
 		<div id="hp"><img src="img/armor.svg"></div>
@@ -30,39 +31,39 @@
 	<div style="display: none;" id="inv">
 		<table id="cells">
 			<tr>
-				<td index="0" onmousedown="invent(this);"></td>
-				<td index="1" onmousedown="invent(this);"></td>
-				<td index="2" onmousedown="invent(this);"></td>
-				<td index="3" onmousedown="invent(this);"></td>
-				<td index="4" onmousedown="invent(this);"></td>
+				<td index="0" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="1" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="2" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="3" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="4" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
 			</tr>
 			<tr>
-				<td index="5" onmousedown="invent(this);"></td>
-				<td index="6" onmousedown="invent(this);"></td>
-				<td index="7" onmousedown="invent(this);"></td>
-				<td index="8" onmousedown="invent(this);"></td>
-				<td index="9" onmousedown="invent(this);"></td>
+				<td index="5" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="6" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="7" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="8" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="9" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
 			</tr>
 			<tr>
-				<td index="10" onmousedown="invent(this);"></td>
-				<td index="11" onmousedown="invent(this);"></td>
-				<td index="12" onmousedown="invent(this);"></td>
-				<td index="13" onmousedown="invent(this);"></td>
-				<td index="14" onmousedown="invent(this);"></td>
+				<td index="10" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="11" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="12" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="13" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="14" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
 			</tr>
 			<tr>
-				<td index="15" onmousedown="invent(this);"></td>
-				<td index="16" onmousedown="invent(this);"></td>
-				<td index="17" onmousedown="invent(this);"></td>
-				<td index="18" onmousedown="invent(this);"></td>
-				<td index="19" onmousedown="invent(this);"></td>
+				<td index="15" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="16" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="17" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="18" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
+				<td index="19" onmousedown="invent(this);" ontouchstart="invent(this);"></td>
 			</tr>
 		</table>
 		<div id="inspect">
 			<div id="A">
-				<img class="invalid" id="iequip" src="img/unchecked.svg" onmousedown="invEquip();">
-				<img class="invalid" id="itrash" src="img/trash.svg" onmousedown="invDelete();">
-				<img class="invalid" id="iuse" src="img/hand.svg" onmousedown="invUse();">
+				<img class="invalid" id="iequip" src="img/unchecked.svg" onmousedown="invEquip();" ontouchstart="invEquip();">
+				<img class="invalid" id="itrash" src="img/trash.svg" onmousedown="invDelete();" ontouchstart="invDelete();">
+				<img class="invalid" id="iuse" src="img/hand.svg" onmousedown="invUse();" ontouchstart="invUse();">
 			</div>
 			<div id="B">
 				<h3 id="iname"></h3>
@@ -73,19 +74,22 @@
 	<div id="bevel"></div>
 	<div id="buttons">
 		<map name="padmap">
-			<area shape="poly" coords="0,128,38,38,128,128,38,218" href="javascript:keyinput('left');">
-			<area shape="poly" coords="38,38,128,0,218,38,128,128" href="javascript:keyinput('up');">
-			<area shape="poly" coords="38,218,128,256,218,218,128,128" href="javascript:keyinput('down');">
-			<area shape="poly" coords="128,128,218,38,256,128,218,218" href="javascript:keyinput('right');">
+			<area shape="poly" coords="0,64,9,9,64,64,9,109" onmousedown="keyinput('left');" ontouchstart="keyinput('left');">
+			<area shape="poly" coords="9,9,64,0,109,9,64,64" onmousedown="keyinput('up');" ontouchstart="keyinput('up');">
+			<area shape="poly" coords="9,109,64,128,109,109,64,64" onmousedown="keyinput('down');" ontouchstart="keyinput('down');">
+			<area shape="poly" coords="64,64,109,9,128,64,109,109" onmousedown="keyinput('right');" ontouchstart="keyinput('right');">
 		</map>
 		<img id="pad" src="img/buttons.svg" usemap="#padmap">
 	</div>
 	<div id="buttons2">
-		<img id="invbutton" class="hide" src="img/stash.svg" onmousedown="Stage.setscene('inv');">
-		<img id="exit" style="display: none" src="img/exit.svg" onmousedown="Stage.setscene('game');">
+		<img id="invbutton" class="hide" src="img/stash.svg" 
+			onmousedown="Stage.setscene('inv');" ontouchstart="Stage.setscene('inv');">
+		<img id="exit" style="display: none" src="img/exit.svg" 
+			onmousedown="Stage.setscene('game');" ontouchstart="Stage.setscene('game');">
 	</div>
 	<div id="actions"></div>
 	<div id="tooltip" style="display: none;">Tooltip</div>
+
+<script type="text/javascript" src="js/paperlike.js"></script>	
 </body>
-<script type="text/javascript" src="js/paperlike.js"></script>
 </html>

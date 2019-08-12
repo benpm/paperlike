@@ -51,6 +51,7 @@ img {
 }
 #stats img {
 	height: 36px;
+	width: 36px;
 	padding: 4px;
 	border-radius: 8px;
 	vertical-align: middle;
@@ -183,14 +184,15 @@ img {
 	position: absolute;
 	bottom: 32px;
 	right: 32px;
-	width: 256px;
-	height: 256px;
-	transform: scale(0.5, 0.5);
-	transform-origin: 100% 100%;
+	width: 128px;
+	height: 128px;
+	z-index: 100;
+	/* transform: scale(0.5, 0.5); */
+	/* transform-origin: 100% 100%; */
 }
 #buttons img {
-	width: 256px;
-	height: 256px;
+	width: 128px;
+	height: 128px;
 }
 #buttons img, map * {
 	outline: none;
